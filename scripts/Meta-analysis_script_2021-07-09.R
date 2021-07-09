@@ -1,0 +1,299 @@
+## Repeatability in avian migratory timings
+
+# Load packages #######################################
+pacman::p_load(SciViews,
+               tidyverse,
+               metafor, # package for meta-analysis
+               rotl, # package for phylogeny
+               ape, # package for phylogeny
+               cowplot # combining multiple plots
+)
+
+
+# Functions needed #######################################
+
+# Function for Fisher's Z transformation (Zr) for correlation-based repeatabilities (r) and ICC (Holtmann et al. 2017, Table 1)
+Zr_transformation <- function(r,K,Est) {
+  
+  if(Est == "ICC") {Zr <- 0.5*ln(((1+(K-1)*r)/(1-r)))}
+  if(Est == "r") {Zr <- 0.5*ln(((1+(K-1)*r)/(1-r)))}
+  Zr
+}
+
+# Function for sampling variance for correlation-based repeatabilities (r) and ICC (Holtmann et al. 2017, Table 1)
+Calc_SV <- function(K,N,Est){
+  
+  if(Est == "ICC") {VZr <- K/(2*((N-2)*(K-1)))}
+  if(Est == "r") {VZr <- 1/(N-3)}
+  VZr
+}
+
+# Function to obtain I^2 total and separate I2 from multilevel-meta-analytic model (written by Shinichi Nakagawa)
+I2 <- function(model, method = c("Wolfgang", "Shinichi")){
+  ## evaluate choices
+  method <- match.arg(method)
+  
+  # Wolfgang's method
+  if(method == "Wolfgang"){
+    W <- solve(model$V) 
+    X <- model.matrix(model)
+    P <- W - W %*% X %*% solve(t(X) %*% W %*% X) %*% t(X) %*% W
+    I2_total <- sum(model$sigma2) / (sum(model$sigma2) + (model$k - model$p) / sum(diag(P)))
+    I2_each  <- model$sigma2 / (sum(model$sigma2) + (model$k - model$p) / sum(diag(P)))
+    names(I2_each) = paste0("I2_", model$s.names)
+    
+    # putting all together
+    I2s <- c(I2_total = I2_total, I2_each)
+    
+    # or my way
+  } else {
+    # sigma2_v = typical sampling error variance
+    sigma2_v <- sum(1/model$vi) * (model$k-1) / (sum(1/model$vi)^2 - sum((1/model$vi)^2)) 
+    I2_total <- sum(model$sigma2) / (sum(model$sigma2) + sigma2_v) #s^2_t = total variance
+    I2_each  <- model$sigma2 / (sum(model$sigma2) + sigma2_v)
+    names(I2_each) = paste0("I2_", model$s.names)
+    
+    # putting all together
+    I2s <- c(I2_total = I2_total, I2_each)
+  }
+  return(I2s)
+}
+
+# Function to get estimates from rma objects (metafor) (Hayward et al. 2021)
+get_est <- function(model, mod = " ") {
+  
+  name <- as.factor(str_replace(row.names(model$beta), mod, ""))
+  estimate <- as.numeric(model$beta)
+  lowerCL <- model$ci.lb
+  upperCL <- model$ci.ub
+  
+  table <- tibble(name = name, estimate = estimate, lowerCL = lowerCL, upperCL = upperCL)
+}
+
+# Function function to get prediction intervals (crediblity intervals) from rma objects (metafor) (Hayward et al. 2021)
+get_pred <- function(model, mod = " ") {
+  name <- as.factor(str_replace(row.names(model$beta), mod, ""))
+  len <- length(name)
+  
+  if (len != 1) {
+    newdata <- matrix(NA, ncol = len, nrow = len)
+    for (i in 1:len) {
+      # getting the position of unique case from X (design matrix)
+      pos <- which(model$X[, i] == 1)[[1]]
+      newdata[, i] <- model$X[pos, ]
+    }
+    pred <- predict.rma(model, newmods = newdata)
+  } else {
+    pred <- predict.rma(model)
+  }
+  lowerPR <- pred$cr.lb
+  upperPR <- pred$cr.ub
+  
+  table <- tibble(name = name, lowerPR = lowerPR, upperPR = upperPR)
+}
+
+
+
+
+
+
+
+# Read in and sort data #######################################
+
+df <- read.csv("data/Meta-analysis_data.csv")
+str(df)
+
+
+# Calculate effect sizes and their sampling variances #######################################
+# Creating new columns for effect sizes (Zr) and sampling variance (VZr)
+df$VZr <- df$Zr <- NA
+
+# Calculate effect sizes using function above
+for (i in as.numeric(rownames(df))) {
+  r <- df$R[i]
+  K <- df$k[i]
+  Est <- df$est[i]
+  
+  Zr <- Zr_transformation(r, K, Est)
+  
+  df$Zr[i] <- Zr
+  
+}
+# Calculate sampling variances using function above
+for (i in as.numeric(rownames(df))) {
+  K <- df$k[i]
+  N <- df$n[i]
+  Est <- df$est[i]
+  
+  VZr <- Calc_SV(K,N,Est)
+  
+  df$VZr[i] <- VZr
+  
+}
+
+
+
+# Phylogeny #######################################
+
+# Using Jetz data (Holtmann et al. 2017) #######################################
+species_list <- unique(df$species_latin) # use unique() as some names are repeated
+species_list<-gsub(" ", "_", species_list) # replace spaces with underscore
+str(species_list)
+
+# Load bird supertree based on Hackett's backbone 
+bird_tree_hackett <- read.tree("data/Hackett.tre") # tree provided by Benedikt Holtmann
+
+# Prune phylogentic tree for meta-analysis
+
+# Check the tree
+bird_tree_hackett # 9993 tips = species
+str(bird_tree_hackett) # has edge (branch) lengths
+bird_tree_hackett <- collapse.singles(bird_tree_hackett)
+
+# Get only bird species from the supertree that are also included in collected data
+# Extract list of all species from the supertree
+bird_tree_species <- as.character(bird_tree_hackett$tip.label)
+
+# Check the overlap of species names between collected data file and the supertree
+# All species should be present. If not, species names may not match with names in the supertree
+intersect(bird_tree_species, species_list) 
+# character(39) - should be 47, need to check which species do/do not match
+
+# gives list of species names which are not matched
+species_list[!species_list %in% bird_tree_species]
+#"Limosa_lapponica_baueri"
+#"Cygnus_columbianus_bewickii"
+#"Limosa_limosa_limosa"
+#"Limosa_limosa_islandica"
+#"Catharacta_antarctica_lonnbergi"
+#"Pterodroma_deserta"
+#"Chen_canagicus"
+#"Anser_caerulescens_atlanticus"
+
+species_list_hackett <- species_list
+
+# Changing subspecies to species, or old genus names from papers to new 
+# Only pterodroma deserta: 3 species in the Pterodroma feae/madeira/desertae complex were once believed to be subspecies of a single species: Pterodroma mollis
+species_list_hackett <- replace(species_list_hackett, species_list_hackett=="Limosa_lapponica_baueri", "Limosa_lapponica")
+species_list_hackett <- replace(species_list_hackett, species_list_hackett=="Limosa_limosa_limosa" | species_list_hackett=="Limosa_limosa_islandica" , "Limosa_limosa")
+species_list_hackett <- replace(species_list_hackett, species_list_hackett=="Cygnus_columbianus_bewickii", "Cygnus_columbianus")
+species_list_hackett <- replace(species_list_hackett, species_list_hackett=="Catharacta_antarctica_lonnbergi", "Catharacta_antarctica")
+species_list_hackett <- replace(species_list_hackett, species_list_hackett=="Pterodroma_deserta", "Pterodroma_mollis")
+species_list_hackett <- replace(species_list_hackett, species_list_hackett=="Chen_canagicus", "Chen_canagica")
+species_list_hackett <- replace(species_list_hackett, species_list_hackett=="Anser_caerulescens_atlanticus", "Chen_caerulescens")
+
+# Now check and see if all species are present in supertree
+intersect(bird_tree_species, species_list_hackett) # = 46 (not 47, because L. l. limosa and L. i. islandica both changed to L. limosa)
+
+# At the moment, 'species_ID' column is based on species rather than subspecies, so goes up to s046 not s047
+
+# Prune supertree to the list of taxa included in the data
+pruned_birds_stree <- drop.tip(bird_tree_hackett, bird_tree_hackett$tip.label[-match(species_list_hackett, bird_tree_hackett$tip.label)])
+
+# Check if tree is binary and ultrametric
+is.binary(pruned_birds_stree) # TRUE
+is.ultrametric(pruned_birds_stree) # TRUE
+
+# Save pruned tree to be use in the meta-analysis
+write.tree(pruned_birds_stree,
+           file = "data/birds_meta-analysis_tree.tre", append = FALSE,
+           digits = 10, tree.names = FALSE
+)
+
+# Plot tree to see how it looks like
+plot(pruned_birds_stree, label.offset = 2, cex = 0.8, main = "'Hackett tree'", cex.main = 1, line = 0.5) # with branch lengths
+
+# Make phylogenetic correlation matrix
+
+# Using metafor - correlation matrix for species in tree
+varcor <- vcv(pruned_birds_stree, corr = TRUE)
+
+
+# Using rotl package (O'Dea et al. 2019) #######################################
+# matching names from open tree taxonomy
+taxa <- tnrs_match_names(names = levels(df$species_latin), context_name = "Animals")
+# which names return more than 1 match?
+inspect(taxa, ott_id = taxa$ott_id[taxa$number_matches != 1])
+# fixing names with more than 1 match
+taxa[taxa$number_matches != 1, ] <- inspect(taxa, ott_id = taxa$ott_id[taxa$number_matches != 1])[2, ]
+# Return the induced subtree on the synthetic tree that relates a list of nodes
+tr <- tol_induced_subtree(ott_id(taxa), label="name")
+plot(tr)
+
+is.binary(tr) # TRUE
+
+
+# Compute branch lengths  
+
+# correlation matrix to fit to the model
+tr$tip.label <- as.factor(tr$tip.label) 
+levels(tr$tip.label) <- levels(df$species_latin) # making sure names match
+tr$tip.label <- as.character(tr$tip.label) # converting names back to character
+
+# compute branch lengths of tree
+phylo_branch <- compute.brlen(tr, method = "Grafen", power = 1)
+
+# check tree is ultrametric
+is.ultrametric(phylo_branch) # TRUE
+
+# saving phylogeneic matrix
+phylo_cor <- vcv(phylo_branch, varcor = T)
+
+
+
+# Meta-analysis #######################################
+# Make sure to have calculated effect sizes and sampling variances above
+
+#meta-analytic modelling
+ma_test1 <- rma.mv(yi = Zr, V = VZr, random = list(~1 | es_ID, ~1 | paper_ID, ~1 | cohort_ID, ~1 | species_ID), 
+                   data = df)
+
+
+meta_model1 <- rma.mv(yi = Zr, V = VZr, random = list(~1 | es_ID, ~1 | paper_ID, ~1 | cohort_ID, ~1 | species_ID),
+  R = list(species_latin_hackett = varcor), # added in phylo
+  data = df)
+
+summary(ma_test1)
+aic1 <- AIC(ma_test1)
+
+## Calculating I^2
+round(I2(ma_test1)*100,1) 
+
+
+
+
+# Make map of locations of repeatability studies #######################################
+
+worldmap <- map_data('world')
+#add point for RI
+#RI <- data.frame(long= 57.30, lat = -20.11, stringsAsFactors = FALSE) #make point for RI
+names(df)
+(world <- ggplot() + geom_polygon(data = worldmap, aes(x=long, y = lat, group = group), fill = "grey", 
+                                  colour = "grey39", size = 0.5) + 
+    coord_fixed(1.3) +
+    theme_minimal() +
+    scale_colour_manual(values=c("#F9766E", "#619DFF", "#00BB38")) +
+    geom_point(data=df, aes(x= long, y =lat, colour=taxa, shape=method), size =6) +
+    geom_rect(aes(xmin= -12, xmax= 23, ymin= 32, ymax= 64), fill = NA, colour = "black", size = 1.2) +
+    #geom_point(data=RI, aes(x=long, y=lat), shape=24, fill= "yellow", size = 12) +
+    theme(panel.grid = element_line(colour = "white"), axis.title = element_blank(), axis.text = element_blank(), 
+          axis.ticks = element_blank(), legend.position = "none"))
+
+##' Zoomed in plot on Europe
+(zoom <- ggplot() + geom_polygon(data = worldmap, aes(x=long, y = lat, group = group), fill = "grey", 
+                                 colour = "grey39", size = 0.5) + 
+    coord_sf(xlim= c(-11,23), ylim= c(32,64)) +
+    theme_minimal() +
+    theme(legend.text=element_text(size=13), legend.title=element_text(size=15, face="bold")) +
+    theme(panel.grid = element_line(colour= "white"),
+          axis.title = element_blank(), axis.text = element_blank(),
+          panel.border = element_rect(colour = "black", fill = NA), 
+          axis.ticks = element_blank()) +
+    scale_colour_discrete(name = "Ecological Group", labels=c("Landbird", "Waterbird", "Seabird")) +
+    scale_shape_discrete(name = "Method") +
+    geom_point(data=df, aes(x= long, y =lat, shape=method, colour=taxa),size =6))
+
+plot_grid(world, zoom, nrow=1, rel_widths = c(1.5,1))
+
+ggsave("figs/Map_of_tagging_locations.jpg")
+
