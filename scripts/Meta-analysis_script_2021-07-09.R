@@ -1,12 +1,18 @@
 ## Repeatability in avian migratory timings
 
+devtools::install_github("itchyshin/orchard_plot", subdir = "orchaRd", force = TRUE, build_vignettes = TRUE)
+
+
 # Load packages #######################################
 pacman::p_load(SciViews,
                tidyverse,
                metafor, # package for meta-analysis
                rotl, # package for phylogeny
                ape, # package for phylogeny
-               cowplot # combining multiple plots
+               cowplot, # combining multiple plots
+               here, # making folder path usable for all
+               clubSandwich, # package to assist metafor
+               orchaRd
 )
 
 
@@ -16,7 +22,7 @@ pacman::p_load(SciViews,
 Zr_transformation <- function(r,K,Est) {
   
   if(Est == "ICC") {Zr <- 0.5*ln(((1+(K-1)*r)/(1-r)))}
-  if(Est == "r") {Zr <- 0.5*ln(((1+(K-1)*r)/(1-r)))}
+  if(Est == "r") {Zr <- 0.5*ln(((1+r)/(1-r)))} # TODO I fixed this- but I guess for r k is 2 so probably does not matter
   Zr
 }
 
@@ -100,9 +106,9 @@ get_pred <- function(model, mod = " ") {
 
 # Read in and sort data #######################################
 
-df <- read.csv("data/Meta-analysis_data.csv")
+df <- read_csv(here("data", "Meta-analysis_data.csv")) # I had to use read_csv ratther than read.csv
 str(df)
-
+df
 
 # Calculate effect sizes and their sampling variances #######################################
 # Creating new columns for effect sizes (Zr) and sampling variance (VZr)
@@ -244,20 +250,58 @@ phylo_cor <- vcv(phylo_branch, varcor = T)
 # Meta-analysis #######################################
 # Make sure to have calculated effect sizes and sampling variances above
 
+# TODO - need to create a variance-covariance matrix at the cohort level (there is an alternative for this method)
+VCV <- impute_covariance_matrix(vi = df$VZr, cluster = df$cohort_ID, r = 0.5)
+# put this in for V = 
+# Why 0.5 - see https://onlinelibrary.wiley.com/doi/full/10.1111/mec.14031
+
+# TODO - you need to create a column called phylogeny, which matches your tree
+df$phylogeny<-gsub(" ", "_", df$species_latin)
+
 #meta-analytic modelling
-ma_test1 <- rma.mv(yi = Zr, V = VZr, random = list(~1 | es_ID, ~1 | paper_ID, ~1 | cohort_ID, ~1 | species_ID), 
+ma_test1 <- rma.mv(yi = Zr, V = VCV, # instead of VZr 
+                   random = list(~1 | es_ID, 
+                                 ~1 | paper_ID, 
+                                 ~1 | cohort_ID, 
+                                 ~1 | species_ID), 
                    data = df)
 
-
-meta_model1 <- rma.mv(yi = Zr, V = VZr, random = list(~1 | es_ID, ~1 | paper_ID, ~1 | cohort_ID, ~1 | species_ID),
-  R = list(species_latin_hackett = varcor), # added in phylo
-  data = df)
-
 summary(ma_test1)
-aic1 <- AIC(ma_test1)
 
 ## Calculating I^2
-round(I2(ma_test1)*100,1) 
+round(i2_ml(ma_test1)*100,1) 
+
+# TODO - see this paper - for reason why we need to put both species_ID and 
+#
+meta_model1 <- rma.mv(yi = Zr, V = VZr, 
+                      random = list(~1 | es_ID, 
+                                    ~1 | paper_ID, 
+                                    ~1 | cohort_ID, 
+                                    ~1 | species_ID, 
+                                    ~1 | phylogeny),
+  R = list(phylogeny = varcor), # added in phylogney
+  data = df)
+
+summary(meta_model1)
+
+
+# TODO 
+# comparing AIC is one way or you can just delete ones which does not account very much or you can leave everything
+aic1 <- AIC(meta_model1)
+
+# TODO - visualise with orchaRd plot
+
+
+
+
+# TODO - please do meta-regression
+# make sure to use r2_ml function to get R2 for each of moderators
+
+# TODO - visualise with orchaRd plot
+
+# TODO - please check for publication bias and time lag bias
+# read this paper - https://ecoevorxiv.org/k7pmz
+# here is the associated code - https://github.com/itchyshin/publication_bias
 
 
 
