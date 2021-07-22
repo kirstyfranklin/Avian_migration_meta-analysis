@@ -256,7 +256,18 @@ VCV <- impute_covariance_matrix(vi = df$VZr, cluster = df$cohort_ID, r = 0.5)
 # Why 0.5 - see https://onlinelibrary.wiley.com/doi/full/10.1111/mec.14031
 
 # TODO - you need to create a column called phylogeny, which matches your tree
-df$phylogeny<-gsub(" ", "_", df$species_latin)
+# copied column to edit species names to match tree (as some sp. names are from old papers, or are subspecies)
+df$species_latin_hackett <- df$species_latin 
+df$species_latin_hackett <-replace(df$species_latin_hackett, df$species_latin_hackett == "Limosa lapponica baueri", "Limosa lapponica")
+df$species_latin_hackett <- replace(df$species_latin_hackett, df$species_latin_hackett=="Limosa limosa limosa" | df$species_latin_hackett=="Limosa limosa islandica" , "Limosa limosa")
+df$species_latin_hackett <-replace(df$species_latin_hackett, df$species_latin_hackett == "Cygnus columbianus bewickii", "Cygnus columbianus")
+df$species_latin_hackett <-replace(df$species_latin_hackett, df$species_latin_hackett == "Catharacta antarctica lonnbergi", "Catharacta antarctica")
+df$species_latin_hackett <-replace(df$species_latin_hackett, df$species_latin_hackett == "Pterodroma deserta", "Pterodroma mollis")
+df$species_latin_hackett <-replace(df$species_latin_hackett, df$species_latin_hackett == "Chen canagicus", "Chen canagica")
+df$species_latin_hackett <-replace(df$species_latin_hackett, df$species_latin_hackett == "Anser caerulescens atlanticus", "Chen caerulescens")
+
+
+df$phylogeny<-gsub(" ", "_", df$species_latin_hackett)
 
 #meta-analytic modelling
 ma_test1 <- rma.mv(yi = Zr, V = VCV, # instead of VZr 
