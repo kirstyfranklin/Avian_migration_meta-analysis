@@ -284,7 +284,7 @@ round(i2_ml(ma_test1)*100,1)
 
 # TODO - see this paper - for reason why we need to put both species_ID and 
 #
-meta_model1 <- rma.mv(yi = Zr, V = VZr, 
+meta_model1 <- rma.mv(yi = Zr, V = VCV, 
                       random = list(~1 | es_ID, 
                                     ~1 | paper_ID, 
                                     ~1 | cohort_ID, 
@@ -295,26 +295,104 @@ meta_model1 <- rma.mv(yi = Zr, V = VZr,
 
 summary(meta_model1)
 
+## Calculating I^2
+round(i2_ml(meta_model1)*100,1) 
+
+# I2_total      I2_es_ID   I2_paper_ID  I2_cohort_ID I2_species_ID  I2_phylogeny 
+# 85.9          51.1           0.0           0.0          27.3           7.5 
+
+# TODO you could keep it all but you could take cohort ID  + paper 
+# or accoding to % explaning - we can tak out a couple of random effects
+
+meta_model2 <- rma.mv(yi = Zr, V = VCV, 
+                      random = list(~1 | es_ID, 
+                                    ~1 | paper_ID, 
+                                   # ~1 | cohort_ID, 
+                                    ~1 | species_ID, 
+                                    ~1 | phylogeny
+                                   ),
+                      R = list(phylogeny = varcor), # added in phylogney
+                      data = df)
+
+meta_model3 <- rma.mv(yi = Zr, V = VCV, 
+                      random = list(~1 | es_ID, 
+                                    #~1 | paper_ID, 
+                                    # ~1 | cohort_ID, 
+                                    ~1 | species_ID, 
+                                    ~1 | phylogeny
+                                    ),
+                      R = list(phylogeny = varcor), # added in phylogney
+                      data = df)
+
+# we cannot take more random effects
+# to do mulileve models we need at least one higher level
+meta_model4 <- rma.mv(yi = Zr, V = VCV, 
+                      random = list(~1 | es_ID, 
+                                    #~1 | paper_ID, 
+                                    # ~1 | cohort_ID, 
+                                    ~1 | species_ID 
+                                    #~1 | phylogeny
+                                    ),
+                      R = list(phylogeny = varcor), # added in phylogney
+                      data = df)
 
 # TODO 
 # comparing AIC is one way or you can just delete ones which does not account very much or you can leave everything
 aic1 <- AIC(meta_model1)
+aic2 <- AIC(meta_model2) 
+aic3 <- AIC(meta_model3) 
+aic4 <- AIC(meta_model4) 
+ 
+aic1; aic2; aic3; aic4
+
+# or you can do liklihood ratio test
+# these are all not all different s you could use model 4
+# but you may want ot use model 1 - that his fine
+# TODO, we have done a simulation study - here - https://ecoevorxiv.org/su4zv/ (almost accepted in Methods in Ecol Evol - minor revision)
+anova(meta_model1, meta_model2)
+anova(meta_model2, meta_model3)
+anova(meta_model3, meta_model4)
 
 # TODO - visualise with orchaRd plot
 
-
+orchard_plot(meta_model1, xlab = "Zr (effect size)")
 
 
 # TODO - please do meta-regression
-# make sure to use r2_ml function to get R2 for each of moderators
+# one example
 
-# TODO - visualise with orchaRd plot
+meta_regression1 <- rma.mv(yi = Zr, V = VCV, 
+                      mods = ~ method,
+                      random = list(~1 | es_ID, 
+                                    ~1 | paper_ID, 
+                                    ~1 | cohort_ID, 
+                                    ~1 | species_ID, 
+                                    ~1 | phylogeny),
+                      R = list(phylogeny = varcor), # added in phylogney
+                      data = df)
+
+summary(meta_regression1)
+
+summary(meta_regression1)
+
+r2_ml(meta_regression1)
+
+# TODO for orchard plot (read vignette)
+meta_regression1b <- rma.mv(yi = Zr, V = VCV, 
+                            mods = ~ method -1,
+                            random = list(~1 | es_ID, 
+                                          ~1 | paper_ID, 
+                                          ~1 | cohort_ID, 
+                                          ~1 | species_ID, 
+                                          ~1 | phylogeny),
+                            R = list(phylogeny = varcor), # added in phylogney
+                            data = df)
 
 # TODO - please check for publication bias and time lag bias
 # read this paper - https://ecoevorxiv.org/k7pmz
 # here is the associated code - https://github.com/itchyshin/publication_bias
 
-
+orchard_plot(meta_regression1b, mod = "method", xlab = "Zr (effect size)")
 
 
 # Make map of locations of repeatability studies #######################################
