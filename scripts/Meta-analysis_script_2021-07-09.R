@@ -12,9 +12,9 @@ pacman::p_load(SciViews,
                cowplot, # combining multiple plots
                here, # making folder path usable for all
                clubSandwich, # package to assist metafor
-               orchaRd
+               orchaRd,
+               MuMIn
 )
-
 
 # Functions needed #######################################
 
@@ -288,9 +288,9 @@ meta_model1 <- rma.mv(yi = Zr, V = VCV,
                       random = list(~1 | es_ID, 
                                     ~1 | paper_ID, 
                                     ~1 | cohort_ID, 
-                                    ~1 | species_ID, 
-                                    ~1 | phylogeny),
-  R = list(phylogeny = varcor), # added in phylogney
+                                    ~1 | species_ID, # non-phylo effect
+                                    ~1 | phylogeny), # phylo effect
+  R = list(phylogeny = varcor), # phylogenetic relatedness
   data = df)
 
 summary(meta_model1)
@@ -302,7 +302,7 @@ round(i2_ml(meta_model1)*100,1)
 # 85.9          51.1           0.0           0.0          27.3           7.5 
 
 # TODO you could keep it all but you could take cohort ID  + paper 
-# or accoding to % explaning - we can tak out a couple of random effects
+# or accoding to % explaning - we can take out a couple of random effects
 
 meta_model2 <- rma.mv(yi = Zr, V = VCV, 
                       random = list(~1 | es_ID, 
@@ -311,7 +311,7 @@ meta_model2 <- rma.mv(yi = Zr, V = VCV,
                                     ~1 | species_ID, 
                                     ~1 | phylogeny
                                    ),
-                      R = list(phylogeny = varcor), # added in phylogney
+                      R = list(phylogeny = varcor), # added in phylogeny
                       data = df)
 
 meta_model3 <- rma.mv(yi = Zr, V = VCV, 
@@ -321,11 +321,11 @@ meta_model3 <- rma.mv(yi = Zr, V = VCV,
                                     ~1 | species_ID, 
                                     ~1 | phylogeny
                                     ),
-                      R = list(phylogeny = varcor), # added in phylogney
+                      R = list(phylogeny = varcor), # added in phylogeny
                       data = df)
 
 # we cannot take more random effects
-# to do mulileve models we need at least one higher level
+# to do multilevel models we need at least one higher level
 meta_model4 <- rma.mv(yi = Zr, V = VCV, 
                       random = list(~1 | es_ID, 
                                     #~1 | paper_ID, 
@@ -359,7 +359,7 @@ orchard_plot(meta_model1, xlab = "Zr (effect size)")
 
 
 # TODO - please do meta-regression
-# one example
+# Method of tracking
 
 meta_regression1 <- rma.mv(yi = Zr, V = VCV, 
                       mods = ~ method,
@@ -373,11 +373,9 @@ meta_regression1 <- rma.mv(yi = Zr, V = VCV,
 
 summary(meta_regression1)
 
-summary(meta_regression1)
-
 r2_ml(meta_regression1)
 
-# TODO for orchard plot (read vignette)
+# TODO for orchard plot - need meta-regression without intercept (see vignette)
 meta_regression1b <- rma.mv(yi = Zr, V = VCV, 
                             mods = ~ method -1,
                             random = list(~1 | es_ID, 
@@ -388,11 +386,195 @@ meta_regression1b <- rma.mv(yi = Zr, V = VCV,
                             R = list(phylogeny = varcor), # added in phylogney
                             data = df)
 
+orchard_plot(meta_regression1b, mod = "method", xlab = "Zr (effect size)")
+
+# Annual event
+
+meta_regression2 <- rma.mv(yi = Zr, V = VCV, 
+                           mods = ~ annual_event,
+                           random = list(~1 | es_ID, 
+                                         ~1 | paper_ID, 
+                                         ~1 | cohort_ID, 
+                                         ~1 | species_ID, 
+                                         ~1 | phylogeny),
+                           R = list(phylogeny = varcor), # added in phylogney
+                           data = df)
+
+summary(meta_regression2)
+
+r2_ml(meta_regression2)
+
+# TODO for orchard plot - need meta-regression without intercept (see vignette)
+meta_regression2b <- rma.mv(yi = Zr, V = VCV, 
+                            mods = ~ annual_event -1,
+                            random = list(~1 | es_ID, 
+                                          ~1 | paper_ID, 
+                                          ~1 | cohort_ID, 
+                                          ~1 | species_ID, 
+                                          ~1 | phylogeny),
+                            R = list(phylogeny = varcor), # added in phylogney
+                            data = df)
+
+orchard_plot(meta_regression2b, mod = "annual_event", xlab = "Zr (effect size)")
+
+
+# Ecological group
+
+meta_regression3 <- rma.mv(yi = Zr, V = VCV, 
+                           mods = ~ taxa,
+                           random = list(~1 | es_ID, 
+                                         ~1 | paper_ID, 
+                                         ~1 | cohort_ID, 
+                                         ~1 | species_ID, 
+                                         ~1 | phylogeny),
+                           R = list(phylogeny = varcor), # added in phylogney
+                           data = df)
+
+summary(meta_regression3)
+
+r2_ml(meta_regression3)
+
+# TODO for orchard plot - need meta-regression without intercept (see vignette)
+meta_regression3b <- rma.mv(yi = Zr, V = VCV, 
+                            mods = ~ taxa -1,
+                            random = list(~1 | es_ID, 
+                                          ~1 | paper_ID, 
+                                          ~1 | cohort_ID, 
+                                          ~1 | species_ID, 
+                                          ~1 | phylogeny),
+                            R = list(phylogeny = varcor), # added in phylogney
+                            data = df)
+
+orchard_plot(meta_regression3b, mod = "taxa", xlab = "Zr (effect size)")
+
+# Sex
+
+meta_regression4 <- rma.mv(yi = Zr, V = VCV, 
+                           mods = ~ sex,
+                           random = list(~1 | es_ID, 
+                                         ~1 | paper_ID, 
+                                         ~1 | cohort_ID, 
+                                         ~1 | species_ID, 
+                                         ~1 | phylogeny),
+                           R = list(phylogeny = varcor), # added in phylogney
+                           data = df)
+
+summary(meta_regression4)
+
+r2_ml(meta_regression4)
+
+# TODO for orchard plot - need meta-regression without intercept (see vignette)
+meta_regression4b <- rma.mv(yi = Zr, V = VCV, 
+                            mods = ~ sex -1,
+                            random = list(~1 | es_ID, 
+                                          ~1 | paper_ID, 
+                                          ~1 | cohort_ID, 
+                                          ~1 | species_ID, 
+                                          ~1 | phylogeny),
+                            R = list(phylogeny = varcor), # added in phylogney
+                            data = df)
+
+orchard_plot(meta_regression4b, mod = "sex", xlab = "Zr (effect size)")
+
+# Can I look at if repeatability decreases with the number of observations per individual ?
+
+
+
+# Model selection (multi-predictor model) ####
+
+# creates a new function to run in MuMIn
+updated.rma.mv <- updateable(rma.mv)
+# updated.rma.mv
+
+# testing the new function use method = 'ML' so that we can compare AIC
+mr_full <- updated.rma.mv(yi = Zr, V = VCV, 
+                          mods = ~ method + taxa + sex + annual_event,
+                          random = list(~1 | es_ID, 
+                                        ~1 | paper_ID, 
+                                        ~1 | cohort_ID, 
+                                        ~1 | species_ID, 
+                                        ~1 | phylogeny),
+                          R = list(phylogeny = varcor), # phylogenetic matrix
+                          method = "ML", 
+                          data = df)
+
+
+# testing dredge dredge(full.model, evaluate=F) # show all candidate models n = 16
+candidates <- dredge(mr_full)
+
+# displays delta AICc <2
+candidates_aic2 <- subset(candidates, delta < 2)
+
+# model averaging it seems like models are using z values rather than t values
+mr_averaged_aic2 <- summary(model.avg(candidates, delta < 2))
+
+# relative importance of each predictor
+importance <- importance(candidates)
+
+
+
 # TODO - please check for publication bias and time lag bias
 # read this paper - https://ecoevorxiv.org/k7pmz
 # here is the associated code - https://github.com/itchyshin/publication_bias
 
-orchard_plot(meta_regression1b, mod = "method", xlab = "Zr (effect size)")
+# Publication bias 
+# To test for publication bias, first fit a phylogenetic multilevel meta-regression to explore whether there is some evidence of small-study effects in meta-analytic dataset. Fit a uni-moderator phylogenetic multilevel meta-regression including the effect sizes' standard errors (SE or sei) as the only moderator (see Equation 21 from main text). This meta-regression will provide some information about the existence of small-study effects (i.e. asymmetry in the distribution of effect sizes)
+
+# creating a variable for the standard error of each effect size (i.e. the square root of the sampling variance)
+df$sei <- sqrt(df$VZr)
+
+# Application of Equation 21 from the main text
+publication.bias.model.r.se <- rma.mv(yi = Zr, V = VCV,
+                                      mod = ~1 + sei,
+                                      random = list(~1 | es_ID, 
+                                                    ~1 | paper_ID, 
+                                                    ~1 | cohort_ID, 
+                                                    ~1 | species_ID, 
+                                                    ~1 | phylogeny),
+                                      R = list(phylogeny = varcor), # added in phylogney
+                                      data=df)
+
+print(publication.bias.model.r.se,digits=3)
+
+# Time-lag bias
+# To test for time-lag bias (also called decline effects) we can first fit a uni-moderator phylogenetic multilevel meta-regression including the year of publication (mean-centred) as the only moderator (see Equation 23 from main text). The estimated slope for year of publication will provide some evidence on whether effect sizes have changed linearly over time since the first effect size was published
+
+df$pub_year <- as.numeric(df$pub_year)
+df$pub_year.c <- as.vector(scale(df$pub_year, scale = F)) # two rows from my unpublished paper on RI petrels
+
+# Application of Equation 23 from the main manuscript
+publication.bias.model.r.timelag <- rma.mv(yi = Zr, V = VCV,
+                                           mods= ~1 + pub_year.c,
+                                           random = list(~1 | es_ID, 
+                                                         ~1 | paper_ID, 
+                                                         ~1 | cohort_ID, 
+                                                         ~1 | species_ID, 
+                                                         ~1 | phylogeny),
+                                           R = list(phylogeny = varcor), # added in phylogney
+                                           data=df)
+
+summary(publication.bias.model.r.timelag) # estimate of pub year v close to zero
+
+
+
+# All-in publication bias test (multi-moderator)  
+# once happy with what moderators to include in final model ?
+
+#publication.bias.model.r.all.se <- rma.mv(yi = Zr, V = VCV,
+#                                         mods= ~1 + # -1 removes the intercept
+#                                           sei +
+#                                           year.c, #+
+#                                         ### moderator variables ###   
+#                                         random = list(~1 | es_ID, 
+#                                                       ~1 | paper_ID, 
+#                                                       ~1 | cohort_ID, 
+#                                                       ~1 | species_ID, 
+#                                                       ~1 | phylogeny),
+#                                         R = list(phylogeny = varcor), # added in phylogney
+#                                         data=df)
+
+#summary(publication.bias.model.r.all.se)
+
 
 
 # Make map of locations of repeatability studies #######################################
