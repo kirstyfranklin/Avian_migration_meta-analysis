@@ -1,7 +1,6 @@
 ## Repeatability in avian migratory timings
 
-devtools::install_github("itchyshin/orchard_plot", subdir = "orchaRd", force = TRUE, build_vignettes = TRUE)
-
+#devtools::install_github("itchyshin/orchard_plot", subdir = "orchaRd", force = TRUE, build_vignettes = TRUE)
 
 # Load packages #######################################
 pacman::p_load(SciViews,
@@ -99,7 +98,24 @@ get_pred <- function(model, mod = " ") {
 }
 
 
-
+R2 <- function(model){
+  warning("Conditional R2 is not meaningful and the same as marginal R2\n")
+  
+  # fixed effect variance
+  fix <- var(as.numeric(as.vector(model$b) %*% t(as.matrix(model$X))))
+  
+  # marginal
+  R2m <- fix / (fix + sum(model$sigma2))
+  R2
+  #Rm <- round(100*R2m, 3)
+  
+  # conditional
+  R2c <- (fix + sum(model$sigma2) - model$sigma2[length(model$sigma2)]) / 
+    (fix + sum(model$sigma2))
+  
+  R2s <- c(R2_marginal = R2m, R2_coditional = R2c)
+  return(R2s)
+}
 
 
 
@@ -107,8 +123,16 @@ get_pred <- function(model, mod = " ") {
 # Read in and sort data #######################################
 
 df <- read_csv(here("data", "Meta-analysis_data.csv")) # I had to use read_csv ratther than read.csv
-str(df)
-df
+
+# Descriptive 
+df %>% summarise(mean = mean(n), median = median(n), min = min(n), max = max(n))
+df %>% group_by(method) %>% summarise(median = median(n), mean = mean(n), min = min(n), max = max(n))
+df %>% group_by(method, taxa) %>% summarise(median = median(n), mean = mean(n), min = min(n), max = max(n))
+df %>% group_by(method) %>% summarise(median = median(k), mean = mean(k), min = min(k), max = max(k))
+df %>% group_by(method, taxa) %>% summarise(n_distinct(paper_ID))
+df %>% group_by(method, taxa) %>% summarise(n_distinct(es_ID))
+df %>% group_by(taxa) %>% summarise(n_distinct(species_ID))
+no.spp <- df %>% group_by(species_ID) %>% summarise(n_distinct(paper_ID))
 
 # Calculate effect sizes and their sampling variances #######################################
 # Creating new columns for effect sizes (Zr) and sampling variance (VZr)
@@ -355,7 +379,7 @@ anova(meta_model3, meta_model4)
 
 # TODO - visualise with orchaRd plot
 
-orchard_plot(meta_model1, xlab = "Zr (effect size)")
+orchard_plot(meta_model1, xlab = "Correlation coefficient (r)", transfm = "tanh", cb="TRUE")
 
 
 # TODO - please do meta-regression
@@ -386,7 +410,11 @@ meta_regression1b <- rma.mv(yi = Zr, V = VCV,
                             R = list(phylogeny = varcor), # added in phylogney
                             data = df)
 
-orchard_plot(meta_regression1b, mod = "method", xlab = "Zr (effect size)")
+# orchard_plot(meta_regression1b, mod = "method", xlab = "Zr (effect size)")
+# added transformation 'tanh' to convert back to the raw correlation coefficient scale (r) - but this is different to ICC ?
+# e.g. tanh(0.4838) = 0.4993 (r) but ICC = 0.378 (which takes into account mean k of dataset, according to equations in Holtmann et al. 2017)
+orchard_plot(meta_regression1b, mod = "method", xlab = "Correlation coefficient (r)", transfm = "tanh", cb="TRUE")
+
 
 # Annual event
 
@@ -415,10 +443,11 @@ meta_regression2b <- rma.mv(yi = Zr, V = VCV,
                             R = list(phylogeny = varcor), # added in phylogney
                             data = df)
 
-orchard_plot(meta_regression2b, mod = "annual_event", xlab = "Zr (effect size)")
-
+# orchard_plot(meta_regression2b, mod = "annual_event", xlab = "Zr (effect size)")
+orchard_plot(meta_regression2b, mod = "annual_event", xlab = "Correlation coefficient (r)", transfm = "tanh", cb="TRUE")
 
 # Ecological group
+# Does controlling for ecological group when having species_ID and phylogeny in as random effects make sense?
 
 meta_regression3 <- rma.mv(yi = Zr, V = VCV, 
                            mods = ~ taxa,
@@ -445,7 +474,8 @@ meta_regression3b <- rma.mv(yi = Zr, V = VCV,
                             R = list(phylogeny = varcor), # added in phylogney
                             data = df)
 
-orchard_plot(meta_regression3b, mod = "taxa", xlab = "Zr (effect size)")
+# orchard_plot(meta_regression3b, mod = "taxa", xlab = "Zr (effect size)")
+orchard_plot(meta_regression3b, mod = "taxa", xlab = "Correlation coefficient (r)", transfm = "tanh", cb="TRUE")
 
 # Sex
 
@@ -474,7 +504,8 @@ meta_regression4b <- rma.mv(yi = Zr, V = VCV,
                             R = list(phylogeny = varcor), # added in phylogney
                             data = df)
 
-orchard_plot(meta_regression4b, mod = "sex", xlab = "Zr (effect size)")
+# orchard_plot(meta_regression4b, mod = "sex", xlab = "Zr (effect size)")
+orchard_plot(meta_regression4b, mod = "sex", xlab = "Correlation coefficient (r)", transfm = "tanh", cb="TRUE")
 
 # Can I look at if repeatability decreases with the number of observations per individual ?
 
@@ -499,6 +530,25 @@ mr_full <- updated.rma.mv(yi = Zr, V = VCV,
                           data = df)
 
 
+### additional methods for "rma.mv" class (made by Kamil Barton)
+### we need this to run model selection with rma.mv in MuMIn
+
+formula.rma.mv <- function (x, ...) return(eval(getCall(x)$mods))
+
+makeArgs.rma.mv <-
+  function (obj, termNames, comb, opt, ...) {
+    ret <- MuMIn:::makeArgs.default(obj, termNames, comb, opt)
+    names(ret)[1L] <- "mods"
+    ret
+  }
+
+nobs.rma.mv <-
+  function (object, ...)
+    attr(logLik(object), "nall")
+
+coefTable.rma.mv <- function (model, ...)
+  MuMIn:::.makeCoefTable(model$b, model$se, coefNames = rownames(model$b))
+
 # testing dredge dredge(full.model, evaluate=F) # show all candidate models n = 16
 candidates <- dredge(mr_full)
 
@@ -511,6 +561,61 @@ mr_averaged_aic2 <- summary(model.avg(candidates, delta < 2))
 # relative importance of each predictor
 importance <- importance(candidates)
 
+# use REML if not for model comparision
+model1 <- rma.mv(yi = Zr, V = VCV, 
+                 mods = ~  annual_event + sex,
+                 random = list(~1 | es_ID, 
+                               ~1 | paper_ID, 
+                               ~1 | cohort_ID, 
+                               ~1 | species_ID, 
+                               ~1 | phylogeny),
+                 R = list(phylogeny = varcor), # phylogenetic matrix
+                 method="REML", 
+                 data = df)
+model2 <- rma.mv(yi = Zr, V = VCV, 
+                 mods = ~  annual_event,
+                 random = list(~1 | es_ID, 
+                               ~1 | paper_ID, 
+                               ~1 | cohort_ID, 
+                               ~1 | species_ID, 
+                               ~1 | phylogeny),
+                 R = list(phylogeny = varcor), # phylogenetic matrix
+                 method="REML", 
+                 data = df)
+model3 <- rma.mv(yi = Zr, V = VCV, 
+                 mods = ~  annual_event + taxa,
+                 random = list(~1 | es_ID, 
+                               ~1 | paper_ID, 
+                               ~1 | cohort_ID, 
+                               ~1 | species_ID, 
+                               ~1 | phylogeny),
+                 R = list(phylogeny = varcor), # phylogenetic matrix
+                 method="REML", 
+                 data = df)
+model4 <- rma.mv(yi = Zr, V = VCV, 
+                 mods = ~  annual_event + method,
+                 random = list(~1 | es_ID, 
+                               ~1 | paper_ID, 
+                               ~1 | cohort_ID, 
+                               ~1 | species_ID, 
+                               ~1 | phylogeny),
+                 R = list(phylogeny = varcor), # phylogenetic matrix
+                 method="REML", 
+                 data = df)
+model5 <- rma.mv(yi = Zr, V = VCV, 
+                 mods = ~  annual_event + sex + taxa,
+                 random = list(~1 | es_ID, 
+                               ~1 | paper_ID, 
+                               ~1 | cohort_ID, 
+                               ~1 | species_ID, 
+                               ~1 | phylogeny),
+                 R = list(phylogeny = varcor), # phylogenetic matrix
+                 method="REML", 
+                 data = df)
+
+# getting averaged R2 and variance components not provided by the MuMIn package - cannot get this to work ??
+# average_sigma2 <- weighted.mean(x = c(model1$sigma2, model2$sigma2, model3$sigma2, model4$sigma2, model5$sigma2), w = candidates_aic2$weight)
+# average_R2 <- weighted.mean(x = c(R2(model1)[1], R2(model2)[1], R2(model3)[1], R2(model4)[1], R2(model5)[1]) , w = candidates_aic2$weight)
 
 
 # TODO - please check for publication bias and time lag bias
@@ -560,20 +665,25 @@ summary(publication.bias.model.r.timelag) # estimate of pub year v close to zero
 # All-in publication bias test (multi-moderator)  
 # once happy with what moderators to include in final model ?
 
-#publication.bias.model.r.all.se <- rma.mv(yi = Zr, V = VCV,
-#                                         mods= ~1 + # -1 removes the intercept
-#                                           sei +
-#                                           year.c, #+
-#                                         ### moderator variables ###   
-#                                         random = list(~1 | es_ID, 
-#                                                       ~1 | paper_ID, 
-#                                                       ~1 | cohort_ID, 
-#                                                       ~1 | species_ID, 
-#                                                       ~1 | phylogeny),
-#                                         R = list(phylogeny = varcor), # added in phylogney
-#                                         data=df)
+publication.bias.model.r.all.se <- rma.mv(yi = Zr, V = VCV,
+                                         mods= ~1 + # -1 removes the intercept
+                                           sei +
+                                           pub_year.c +
+                                         annual_event + method + taxa + sex, 
+                                         random = list(~1 | es_ID, 
+                                                       ~1 | paper_ID, 
+                                                       ~1 | cohort_ID, 
+                                                       ~1 | species_ID, 
+                                                       ~1 | phylogeny),
+                                         R = list(phylogeny = varcor), # added in phylogney
+                                         data=df)
 
-#summary(publication.bias.model.r.all.se)
+summary(publication.bias.model.r.all.se)
+# doesn't look like any small study effect or publication bias?
+
+round(orchaRd::r2_ml(publication.bias.model.r.all.se)[[1]]*100,1)
+
+
 
 
 
