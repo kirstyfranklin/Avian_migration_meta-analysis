@@ -127,10 +127,8 @@ df <- read_csv(here("data", "Meta-analysis_data.csv")) # I had to use read_csv r
 # Descriptive 
 df %>% summarise(mean = mean(n), median = median(n), min = min(n), max = max(n))
 df %>% group_by(method) %>% summarise(median = median(n), mean = mean(n), min = min(n), max = max(n))
-df %>% group_by(method, taxa) %>% summarise(median = median(n), mean = mean(n), min = min(n), max = max(n))
+df %>% group_by(method, taxa) %>% summarise(median = median(n), mean = mean(n), min = min(n), max = max(n), cohort= n_distinct(cohort_ID), paper=n_distinct(paper_ID), es=n_distinct(es_ID))
 df %>% group_by(method) %>% summarise(median = median(k), mean = mean(k), min = min(k), max = max(k))
-df %>% group_by(method, taxa) %>% summarise(n_distinct(paper_ID))
-df %>% group_by(method, taxa) %>% summarise(n_distinct(es_ID))
 df %>% group_by(taxa) %>% summarise(n_distinct(species_ID))
 no.spp <- df %>% group_by(species_ID) %>% summarise(n_distinct(paper_ID))
 
