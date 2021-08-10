@@ -325,7 +325,7 @@ round(i2_ml(meta_model1)*100,1)
 
 # TODO you could keep it all but you could take cohort ID  + paper 
 # or accoding to % explaning - we can take out a couple of random effects
-
+# TODO - I forgot about -  method="ML")
 meta_model2 <- rma.mv(yi = Zr, V = VCV, 
                       random = list(~1 | es_ID, 
                                     ~1 | paper_ID, 
@@ -334,7 +334,8 @@ meta_model2 <- rma.mv(yi = Zr, V = VCV,
                                     ~1 | phylogeny
                                    ),
                       R = list(phylogeny = varcor), # added in phylogeny
-                      data = df)
+                      data = df,
+                      method="ML")
 
 meta_model3 <- rma.mv(yi = Zr, V = VCV, 
                       random = list(~1 | es_ID, 
@@ -344,7 +345,8 @@ meta_model3 <- rma.mv(yi = Zr, V = VCV,
                                     ~1 | phylogeny
                                     ),
                       R = list(phylogeny = varcor), # added in phylogeny
-                      data = df)
+                      data = df, 
+                      method="ML")
 
 # we cannot take more random effects
 # to do multilevel models we need at least one higher level
@@ -356,7 +358,8 @@ meta_model4 <- rma.mv(yi = Zr, V = VCV,
                                     #~1 | phylogeny
                                     ),
                       R = list(phylogeny = varcor), # added in phylogney
-                      data = df)
+                      data = df,
+                      method="ML")
 
 # TODO 
 # comparing AIC is one way or you can just delete ones which does not account very much or you can leave everything
