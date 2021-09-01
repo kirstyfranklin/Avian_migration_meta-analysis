@@ -12,7 +12,8 @@ pacman::p_load(SciViews,
                here, # making folder path usable for all
                clubSandwich, # package to assist metafor
                orchaRd,
-               MuMIn
+               MuMIn,
+               stringr
 )
 
 # Functions needed #######################################
@@ -118,6 +119,13 @@ R2 <- function(model){
 }
 
 
+# custom function for extracting mean and CI from each metafor model (Publication bias paper)
+estimates.CI <- function(model){
+  db.mf <- data.frame(model$b,row.names = 1:nrow(model$b))
+  db.mf <- cbind(db.mf,model$ci.lb,model$ci.ub,row.names(model$b))
+  names(db.mf) <- c("mean","lower","upper","estimate")
+  return(db.mf[,c("estimate","mean","lower","upper")])
+}
 
 
 # Read in and sort data #######################################
@@ -125,10 +133,10 @@ R2 <- function(model){
 df <- read_csv(here("data", "Meta-analysis_data.csv")) # I had to use read_csv ratther than read.csv
 
 # Descriptive 
-df %>% summarise(mean = mean(n), median = median(n), min = min(n), max = max(n))
+df %>% summarise(mean = mean(n), median = median(n), min = min(n), max = max(n), mean_k = mean(k), median_k = median(k), min_k = min(k), max_k = max(k))
 df %>% group_by(method) %>% summarise(median = median(n), mean = mean(n), min = min(n), max = max(n))
 df %>% group_by(method, taxa) %>% summarise(median = median(n), mean = mean(n), min = min(n), max = max(n), cohort= n_distinct(cohort_ID), paper=n_distinct(paper_ID), es=n_distinct(es_ID))
-df %>% group_by(method) %>% summarise(median = median(k), mean = mean(k), min = min(k), max = max(k))
+df %>% group_by(method, taxa) %>% summarise(median = median(k), mean = mean(k), min = min(k), max = max(k))
 df %>% group_by(taxa) %>% summarise(n_distinct(species_ID))
 no.spp <- df %>% group_by(species_ID) %>% summarise(n_distinct(paper_ID))
 
@@ -316,7 +324,8 @@ meta_model1 <- rma.mv(yi = Zr, V = VCV,
   data = df)
 
 summary(meta_model1)
-
+tanh(0.5186); tanh(0.0687) # effect size estimate into r
+# mean k 2.69
 ## Calculating I^2
 round(i2_ml(meta_model1)*100,1) 
 
@@ -383,6 +392,7 @@ anova(meta_model3, meta_model4)
 orchard_plot(meta_model1, xlab = "Correlation coefficient (r)", transfm = "tanh", cb="TRUE")
 
 
+
 # TODO - please do meta-regression
 # Method of tracking
 
@@ -398,10 +408,29 @@ meta_regression1 <- rma.mv(yi = Zr, V = VCV,
 
 summary(meta_regression1)
 
+# reordering
+df$method <- factor(df$method, levels = c("Conventional", "GLS", "Satellite"))
+
+meta_regression1b <- rma.mv(yi = Zr, V = VCV, 
+                            mods = ~ relevel(method, ref = "GLS"),
+                            random = list(~1 | es_ID, 
+                                          ~1 | paper_ID, 
+                                          ~1 | cohort_ID, 
+                                          ~1 | species_ID, 
+                                          ~1 | phylogeny),
+                            R = list(phylogeny = varcor), # added in phylogney
+                            data = df)
+
+summary(meta_regression1b)
+
 r2_ml(meta_regression1)
 
+res_meta_regression1b <- get_est(meta_regression1b, mod = "method")
+
+tanh(res_meta_regression1b$estimate)
+
 # TODO for orchard plot - need meta-regression without intercept (see vignette)
-meta_regression1b <- rma.mv(yi = Zr, V = VCV, 
+meta_regression1c <- rma.mv(yi = Zr, V = VCV, 
                             mods = ~ method -1,
                             random = list(~1 | es_ID, 
                                           ~1 | paper_ID, 
@@ -414,10 +443,70 @@ meta_regression1b <- rma.mv(yi = Zr, V = VCV,
 # orchard_plot(meta_regression1b, mod = "method", xlab = "Zr (effect size)")
 # added transformation 'tanh' to convert back to the raw correlation coefficient scale (r) - but this is different to ICC ?
 # e.g. tanh(0.4838) = 0.4993 (r) but ICC = 0.378 (which takes into account mean k of dataset, according to equations in Holtmann et al. 2017)
-orchard_plot(meta_regression1b, mod = "method", xlab = "Correlation coefficient (r)", transfm = "tanh", cb="TRUE")
+orchard_plot(meta_regression1c, mod = "method", xlab = "Correlation coefficient (r)", transfm = "tanh", cb="TRUE")
+
+
+# orchard plot for method but with ICC ####
+# function
+to_ICC <- function(x,k){ 
+  (exp(2*x)-1)/(exp(2*x)+k-1)
+}
+
+# get model results
+
+mr1 <- mod_results(meta_regression1c, mod="method")
+mr1_mod_table <- mr1$mod_table
+
+mr1_data <- mr1$data
+
+# back-transform model results to ICC
+# calculate k for each method separately
+
+df %>% group_by(method) %>% summarise(mean(k))
+
+
+mr1_data <- mr1_data %>% mutate(k = case_when(moderator == "GLS" ~ 2.20, 
+                                              moderator == "Conventional" ~ 3.13,
+                                              moderator == "Satellite" ~ 3.28))
+
+mr1_data$yi_ICC <- to_ICC(mr1_data$yi, mr1_data$k)
+
+mr1_mod_table$k <- c(3.13, 2.20, 3.28)
+
+for(i in names(mr1_mod_table)[2:6]){
+  
+  mr1_mod_table[i] <- to_ICC(mr1_mod_table[i], mr1_mod_table$k)
+  
+}
+
+
+mr1_data$moderator <- factor(mr1_data$moderator, levels = mr1_mod_table$name, labels = mr1_mod_table$name)
+mr1_data$scale <- (1/sqrt(mr1_data[,"vi"]))
+mr1_mod_table$K <- as.vector(by(mr1_data, mr1_data[,"moderator"], function(x) length(x[,"yi"])))
+mr1_group_no <- nrow(mr1_mod_table)
+
+
+(fig_ma <- ggplot(data = mr1_mod_table, aes(x = estimate, y = name)) + 
+    #scale_x_continuous(limits = c(-1, 1), breaks = seq(-1, 1, by = 0.2)) + 
+    ggbeeswarm::geom_quasirandom(data = mr1_data, aes(x = yi_ICC, y = moderator, size = scale, colour=moderator), groupOnX=FALSE, alpha = 0.5) +
+    geom_errorbarh(aes(xmin = lowerPR, xmax = upperPR), height = 0, show.legend = F, size = 0.5, alpha = 0.6) + # CI
+    geom_errorbarh(aes(xmin = lowerCL, xmax = upperCL), height = 0, show.legend = F, size = 1.2) + 
+    geom_vline(xintercept = 0, linetype = 2, colour = "black", alpha = 0.5) + # creating dots and different size (bee-swarm and bubbles)
+    geom_point(aes(fill=name), size = 3, shape = 21) + 
+    ggplot2::annotate("text", x = max(mr1_data$yi_ICC) + (max(mr1_data$yi_ICC)*0.10), y = (seq(1, mr1_group_no, 1)+0.3), 
+                      label = paste("italic(k)==", mr1_mod_table$K), parse = TRUE, hjust = "right", size = 3.5) +
+    ggplot2::theme_bw() +
+    ggplot2::guides(fill="none", colour="none") +
+    ggplot2::theme(legend.position = c(1,0), legend.justification = c(1,0), legend.title = element_text(size=9), 
+                   legend.direction = "horizontal", legend.background = element_blank(), axis.text.y = element_text(size=10, 
+                                                                                                                    colour="black", hjust=0.5, angle=90)) +
+    ggplot2::labs(x=paste("Effect size (ICC)"), y="", size=paste("Precision (1/SE)")))
 
 
 # Annual event
+
+# reordering
+df$annual_event <- factor(df$annual_event, levels = c("Arrival_breed", "Depart_breed", "Nonbreed_arrival", "Nonbreed_depart"))
 
 meta_regression2 <- rma.mv(yi = Zr, V = VCV, 
                            mods = ~ annual_event,
@@ -431,10 +520,35 @@ meta_regression2 <- rma.mv(yi = Zr, V = VCV,
 
 summary(meta_regression2)
 
+
+meta_regression2b <- rma.mv(yi = Zr, V = VCV, 
+                            mods = ~ relevel(annual_event, ref = "Depart_breed"),
+                            random = list(~1 | es_ID, 
+                                          ~1 | paper_ID, 
+                                          ~1 | cohort_ID, 
+                                          ~1 | species_ID, 
+                                          ~1 | phylogeny),
+                            R = list(phylogeny = varcor), # added in phylogney
+                            data = df)
+
+summary(meta_regression2b)
+
+meta_regression2c <- rma.mv(yi = Zr, V = VCV, 
+                            mods = ~ relevel(annual_event, ref = "Nonbreed_arrival"),
+                            random = list(~1 | es_ID, 
+                                          ~1 | paper_ID, 
+                                          ~1 | cohort_ID, 
+                                          ~1 | species_ID, 
+                                          ~1 | phylogeny),
+                            R = list(phylogeny = varcor), # added in phylogney
+                            data = df)
+
+summary(meta_regression2c)
+
 r2_ml(meta_regression2)
 
 # TODO for orchard plot - need meta-regression without intercept (see vignette)
-meta_regression2b <- rma.mv(yi = Zr, V = VCV, 
+meta_regression2d <- rma.mv(yi = Zr, V = VCV, 
                             mods = ~ annual_event -1,
                             random = list(~1 | es_ID, 
                                           ~1 | paper_ID, 
@@ -445,7 +559,7 @@ meta_regression2b <- rma.mv(yi = Zr, V = VCV,
                             data = df)
 
 # orchard_plot(meta_regression2b, mod = "annual_event", xlab = "Zr (effect size)")
-orchard_plot(meta_regression2b, mod = "annual_event", xlab = "Correlation coefficient (r)", transfm = "tanh", cb="TRUE")
+orchard_plot(meta_regression2d, mod = "annual_event", xlab = "Correlation coefficient (r)", transfm = "tanh", cb="TRUE")
 
 # Ecological group
 # Does controlling for ecological group when having species_ID and phylogeny in as random effects make sense?
@@ -464,8 +578,23 @@ summary(meta_regression3)
 
 r2_ml(meta_regression3)
 
-# TODO for orchard plot - need meta-regression without intercept (see vignette)
+# reordering
+df$taxa <- factor(df$taxa, levels = c("Waterbird", "Seabird", "Landbird"))
+
 meta_regression3b <- rma.mv(yi = Zr, V = VCV, 
+                           mods = ~ relevel(taxa, ref = "Seabird"),
+                           random = list(~1 | es_ID, 
+                                         ~1 | paper_ID, 
+                                         ~1 | cohort_ID, 
+                                         ~1 | species_ID, 
+                                         ~1 | phylogeny),
+                           R = list(phylogeny = varcor), # added in phylogney
+                           data = df)
+
+summary(meta_regression3b)
+
+# TODO for orchard plot - need meta-regression without intercept (see vignette)
+meta_regression3c <- rma.mv(yi = Zr, V = VCV, 
                             mods = ~ taxa -1,
                             random = list(~1 | es_ID, 
                                           ~1 | paper_ID, 
@@ -476,9 +605,11 @@ meta_regression3b <- rma.mv(yi = Zr, V = VCV,
                             data = df)
 
 # orchard_plot(meta_regression3b, mod = "taxa", xlab = "Zr (effect size)")
-orchard_plot(meta_regression3b, mod = "taxa", xlab = "Correlation coefficient (r)", transfm = "tanh", cb="TRUE")
+orchard_plot(meta_regression3c, mod = "taxa", xlab = "Correlation coefficient (r)", transfm = "tanh", cb="TRUE")
 
 # Sex
+# reordering
+df$sex <- factor(df$sex, levels = c("F", "M", "B"))
 
 meta_regression4 <- rma.mv(yi = Zr, V = VCV, 
                            mods = ~ sex,
@@ -492,10 +623,22 @@ meta_regression4 <- rma.mv(yi = Zr, V = VCV,
 
 summary(meta_regression4)
 
+meta_regression4b <- rma.mv(yi = Zr, V = VCV, 
+                            mods = ~ relevel(sex, ref = "F"),
+                            random = list(~1 | es_ID, 
+                                          ~1 | paper_ID, 
+                                          ~1 | cohort_ID, 
+                                          ~1 | species_ID, 
+                                          ~1 | phylogeny),
+                            R = list(phylogeny = varcor), # added in phylogney
+                            data = df)
+
+summary(meta_regression4b)
+
 r2_ml(meta_regression4)
 
 # TODO for orchard plot - need meta-regression without intercept (see vignette)
-meta_regression4b <- rma.mv(yi = Zr, V = VCV, 
+meta_regression4c <- rma.mv(yi = Zr, V = VCV, 
                             mods = ~ sex -1,
                             random = list(~1 | es_ID, 
                                           ~1 | paper_ID, 
@@ -506,11 +649,54 @@ meta_regression4b <- rma.mv(yi = Zr, V = VCV,
                             data = df)
 
 # orchard_plot(meta_regression4b, mod = "sex", xlab = "Zr (effect size)")
-orchard_plot(meta_regression4b, mod = "sex", xlab = "Correlation coefficient (r)", transfm = "tanh", cb="TRUE")
+orchard_plot(meta_regression4c, mod = "sex", xlab = "Correlation coefficient (r)", transfm = "tanh", cb="TRUE")
+
 
 # Can I look at if repeatability decreases with the number of observations per individual ?
+# Using k ?
 
+meta_regression5 <- rma.mv(yi = Zr, V = VCV, 
+                            mods = ~ k,
+                            random = list(~1 | es_ID, 
+                                          ~1 | paper_ID, 
+                                          ~1 | cohort_ID, 
+                                          ~1 | species_ID, 
+                                          ~1 | phylogeny),
+                            R = list(phylogeny = varcor), # added in phylogney
+                            data = df)
 
+# do I need to centre? Doesn't seem to make a difference
+df$k.c <- as.vector(scale(df$k, scale = F))
+
+meta_regression5 <- rma.mv(yi = Zr, V = VCV, 
+                           mods = ~ k.c,
+                           random = list(~1 | es_ID, 
+                                         ~1 | paper_ID, 
+                                         ~1 | cohort_ID, 
+                                         ~1 | species_ID, 
+                                         ~1 | phylogeny),
+                           R = list(phylogeny = varcor), # added in phylogney
+                           data = df)
+
+summary(meta_regression5)
+
+# Plotting using code from Hayward et al. 2021 
+# but using Zr, not ICC or R
+pred_meta_regression5 <- predict.rma(meta_regression5)
+
+fig_meta_regression5 <-  df %>% 
+  mutate(ymin = pred_meta_regression5$ci.lb, 
+         ymax = pred_meta_regression5$ci.ub,
+         ymin2 = pred_meta_regression5$cr.lb,
+         ymax2 = pred_meta_regression5$cr.ub,
+         pred = pred_meta_regression5$pred) %>% 
+  ggplot(aes(x = (k), y = Zr, size = (1/VZr) + 3, )) +
+  geom_point(shape = 21, fill = "grey90") +
+  geom_smooth(aes(y = ymin2), method =  "loess", se = FALSE, lty =  "dotted", lwd = 0.25, colour = "#0072B2") +
+  geom_smooth(aes(y = ymax2), method =  "loess", se = FALSE, lty = "dotted", lwd = 0.25, colour = "#0072B2") +
+  geom_smooth(aes(y = ymin), method =  "loess", se = FALSE,lty = "dotted", lwd = 0.25, colour ="#D55E00") +
+  geom_smooth(aes(y = ymax), method =  "loess", se = FALSE, lty ="dotted", lwd = 0.25, colour ="#D55E00") + 
+  geom_smooth(aes(y = pred), method =  "loess", se = FALSE, lty ="dashed", lwd = 0.5, colour ="black")
 
 # Model selection (multi-predictor model) ####
 
@@ -641,6 +827,11 @@ publication.bias.model.r.se <- rma.mv(yi = Zr, V = VCV,
                                       data=df)
 
 print(publication.bias.model.r.se,digits=3)
+#Slope = 0.182. Not significant. Means that effect sizes with larger SE (more uncertain effect sizes) DO NOT tend to be larger
+estimates.publication.bias.model.r.se <- estimates.CI(publication.bias.model.r.se)
+round(estimates.publication.bias.model.r.se[2,2],2)
+round(orchaRd::r2_ml(publication.bias.model.r.se)[[1]]*100,1)
+
 
 # Time-lag bias
 # To test for time-lag bias (also called decline effects) we can first fit a uni-moderator phylogenetic multilevel meta-regression including the year of publication (mean-centred) as the only moderator (see Equation 23 from main text). The estimated slope for year of publication will provide some evidence on whether effect sizes have changed linearly over time since the first effect size was published
@@ -660,7 +851,7 @@ publication.bias.model.r.timelag <- rma.mv(yi = Zr, V = VCV,
                                            data=df)
 
 summary(publication.bias.model.r.timelag) # estimate of pub year v close to zero
-
+round(orchaRd::r2_ml(publication.bias.model.r.timelag)[[1]]*100,1)
 
 
 # All-in publication bias test (multi-moderator)  
@@ -680,7 +871,7 @@ publication.bias.model.r.all.se <- rma.mv(yi = Zr, V = VCV,
                                          data=df)
 
 summary(publication.bias.model.r.all.se)
-# doesn't look like any small study effect or publication bias?
+# sei & pub_year still not significant - no small study effect or publication bias. Same as uni-variate models.
 
 round(orchaRd::r2_ml(publication.bias.model.r.all.se)[[1]]*100,1)
 
