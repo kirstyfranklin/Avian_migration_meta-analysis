@@ -1,3 +1,3 @@
 # Avian_migration_meta-analysis
 
-Meta-analysis on repeatability of avian migratory timings, focusing on arrival dates to, and departure dates from, breeding and non-breeding grounds.
+Code of manuscript 'Individual repeatability of avian migration phenology: a systematic review and meta-analysis'
