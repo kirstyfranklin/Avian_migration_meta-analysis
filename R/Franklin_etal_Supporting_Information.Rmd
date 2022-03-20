@@ -1,0 +1,2170 @@
+---
+title: 'Individual repeatability of avian migration phenology: a systematic review
+  and meta-analysis'
+author: Kirsty A. Franklin*, Malcolm A. C. Nicoll, Simon J. Butler, Ken Norris, Norman Ratcliffe,
+  Shinichi Nakagawa & Jennifer A. Gill
+date: "`r format(Sys.time(), '%d %B %Y')`"
+output:
+  html_document:
+    code_download: yes
+    code_folding: hide
+    depth: 4
+    number_sections: no
+    theme: cosmo
+    toc: yes
+    toc_depth: 4
+    toc_float: yes
+  pdf_document:
+    toc: yes
+  word_document:
+    toc: yes
+    toc_depth: '4'
+link-citations: yes
+csl: journal-of-animal-ecology.csl
+subtitle: Appendix S1
+bibliography: Meta-analysis_supp_references.bib
+always_allow_html: true
+---
+
+```{r setup, include = FALSE}
+#kniter setting
+knitr::opts_chunk$set(
+message = FALSE,
+warning = FALSE, # no warnings
+cache = TRUE,# cacheing to save time when kniting
+tidy = TRUE
+#fig.width = 9
+)
+
+# cleaning up
+ rm(list=ls())
+```
+
+## Setups
+
+### Loading packages and custom functions
+
+```{r load-packages}
+# loading packages
+#devtools::install_github("itchyshin/orchard_plot", subdir = "orchaRd", force = TRUE, build_vignettes = TRUE)
+pacman::p_load(SciViews,
+               tidyverse,
+               dplyr,
+               metafor, # package for meta-analysis
+               rotl, # package for phylogeny
+               ape, # package for phylogeny
+               cowplot, # combining multiple plots
+               here, # making folder path usable for all
+               clubSandwich, # package to assist metafor
+               orchaRd, # plotting orchaRd plots
+               MuMIn, # multi-model inference
+               kableExtra, # making nice tables
+               patchwork, # putting ggplots together
+               png, # reading png files
+               grid, # graphic layout manipulation
+               pander, # nice tables
+               ggplot2 # making figures
+)
+```
+
+#### Custom functions
+
+We have 4 custom functions named : `Zr_transformation()`, `Calc_SV()`, `Zr_to_ICC()`, and `cont_gen()`, all of which are used later (see below for their functionality) and the code is included here. 
+
+```{r custom-functions}
+# Custom functions
+
+# Getting Zr and its sampling variance from repeatability values and sample size information
+# Function for Fisher's Z transformation (Zr) for correlation-based repeatabilities (r) and ICC (Holtmann et al. 2017, Table 1)
+Zr_transformation <- function(r,K,Est) {
+  
+  if(Est == "ICC") {Zr <- 0.5*ln(((1+(K-1)*r)/(1-r)))}
+  if(Est == "r") {Zr <- 0.5*ln(((1+r)/(1-r)))}
+  Zr
+}
+
+# Function for sampling variance for correlation-based repeatabilities (r) and ICC (Holtmann et al. 2017, Table 1)
+Calc_SV <- function(K,N,Est){
+  
+  if(Est == "ICC") {VZr <- K/(2*((N-2)*(K-1)))}
+  if(Est == "r") {VZr <- 1/(N-3)}
+  VZr
+}
+
+# Function for back-transforming Zr to ICC
+Zr_to_ICC <- function(x,k){ 
+  (exp(2*x)-1)/(exp(2*x)+k-1)
+}
+
+# Contrast name generator for tibble tables (from Hayward et al. 2021)
+cont_gen <- function (name) {
+  combination <- combn(name,2)
+  name_dat <- t(combination)
+  names <- paste(name_dat[ ,1], name_dat[, 2], sep = "-")
+  return(names)
+}
+
+```
+
+## Supplementary Methods
+
+### Supplementary information for the literature search
+
+We aimed to conduct a comprehensive search for studies estimating repeatability of temporal parameters of avian migration using a combination of approaches. We focused on arrival at, and departure from, breeding and non-breeding grounds. First, we performed a systematic search for published studies using the Web of Science and Scopus online databases on 1st June 2021 (Timespan: all years). Second, we consulted a recently published meta-analysis of hormonal, metabolic and behavioural repeatability in birds [@holtmann_metabolic_2017], which included repeatability estimates of migration. We manually checked each entry from those sources to confirm suitability for our purposes and extracted additional moderator variables to be used in our analyses (see below). Finally, in order to add to – and validate the accuracy of – the results of the literature search, we searched the reference lists of papers already in our accepted reference library. The details of these search strategies and the Boolean search strings used are presented below, along with a flow diagram (often referred to as a PRISMA flow chart – the Preferred Reporting Items in Systematic Reviews and Meta-Analyses; Figure S1) which shows the stages at which studies were disqualified or eventually used in the current study.
+  
+  **Web of Science Core Collection:**
+  
+  (TS=(“repeat\*” OR "intraclass correlation" OR “ICC” OR "individual variation" OR "intra-individual variation" OR "between-individual variation" OR "consisten\*" OR "flexib\*") AND TS=(“migration” OR “migratory”) AND TS=(“\*bird\*” OR “aves” OR “avian”)) AND (SU=(Behavioral Sciences OR Biodiversity & Conservation OR Environmental Sciences & Ecology OR Evolutionary Biology OR Genetics & Heredity OR Marine & Freshwater Biology OR Oceanography OR Veterinary Sciences OR Zoology))
+  
+  **Scopus:** 
+  
+  TITLE-ABS-KEY ( "repeat\*" OR "intraclass correlation" OR "ICC" OR "individual variation" OR "intra-individual variation" OR "between-individual variation" OR "consisten\*" OR "flexib\*" ) AND TITLE-ABS-KEY ( "migration" OR "migratory" ) AND TITLE-ABS-KEY ( "\*bird\*" OR "aves" OR "avian" ) AND ( LIMIT-TO ( SUBJAREA , "AGRI" ) OR LIMIT-TO ( SUBJAREA , "ENVI" ) OR LIMIT-TO ( SUBJAREA , "VETE" ) )
+
+
+We followed reporting guidelines outlined in the PRISMA-EcoEvo checklist [@odea_preferred_2021].
+
+### PRISMA flow chart
+
+#### Figure S1
+![](C:/Users/rst18vzu/OneDrive - University of East Anglia/PhD/Lit. review/Meta-analysis/Avian_migration_meta-analysis/figs/PRISMA_flow_chart.PNG){width=80%}
+
+**Figure S1.** PRISMA flow chart summarising search methods and screening for studies included in analyses, and reasons for excluding studies. 
+
+### Decision tree
+
+#### Figure S2
+![](C:/Users/rst18vzu/OneDrive - University of East Anglia/PhD/Lit. review/Meta-analysis/Avian_migration_meta-analysis/figs/Decision_tree_abstract.PNG){width=60%}
+
+**Figure S2.** Decision tree used to evaluate studies for inclusion and exclusion at the stage of title and abstract screening.
+
+## The Repeatability Dataset
+
+### Table of the dataset
+
+Below is the dataset used for our meta-analysis, followed by explanations of the variables extracted from the papers included (not all variables were used for our analyses).
+
+#### Table S1
+The meta-analytic dataset of this study.
+
+```{r data-set}
+# getting the data and formating some variables (turning chraracter vectors to factors)
+df <- read_csv(here("data", "Meta-analysis_data-2022.csv"), na = "NA", show_col_types = F) %>% 
+   mutate_if(is.character, as.factor)
+
+# making a scrollable table of dataset
+kable(df, "html") %>%
+  kable_styling("striped", position = "left") %>%
+  scroll_box(width = "100%", height = "500px")
+```
+
+A. __es_ID__: Unique ID for each row of data (i.e. each effect size).
+
+B. __paper_ID__: Unique ID for each paper.
+
+C. __cohort_ID__: Unique ID for each cohort of birds.
+
+D. __species_ID__: Unique ID for each species.
+
+E. __species_common__: Common name of species (taken from paper).
+
+F. __species_latin__: Latin name of species (taken from paper).
+
+G. __taxa__: Species split into three ecological groups: 'waterbird', 'seabird' or 'landbird' based on @geen_effects_2019
+
+H. __sex__: Male, female or both/unknown.
+
+I. __n__: Number of individuals.
+
+J. __k__: Number of observations per individual.
+
+K. __est__: Method of calculating repeatability: correlation coefficient (r) or intraclass correlation coefficient (ICC).
+
+L. __R__: Repeatability value.
+
+M. __fixed_yn__: Any fixed effects (or additional random effects) included in repeatability calculation: yes or no.
+
+N. __fixed_var__: If yes, what additional variables are included.
+
+O. __unstandardized_variance__: Whether unstandardized variance components are reported.
+
+P. __method__: Tracking method: conventional (ringing, colour-ringing), geolocator (geolocation), or GPS (GPS, satellite, PTT).
+
+Q. __annual_event__: Period of annual cycle which repeatability is measured (arrival to, or departure from, breeding or non-breeding grounds).
+
+R. __location__: Location of tagging (as written by paper).
+
+S. __continent__: Continent of tagging location: North America, Europe, or Other.
+
+T. __long__: Longitude of tagging location.
+
+U. __lat__: Latitude of tagging location.
+
+V. __tag_period__: Whether individuals were tagged on the breeding or non-breeding grounds.
+
+W. __notes__: general comments
+
+X. __data_location__: Where in the paper the data is located.
+
+Y. __data_presentation__: Text, figure, or table.
+
+Z. __title__: Title of the paper.
+
+AA. __pub_year__: Publication year of paper.
+
+AB: __authors__: Authors of the paper.
+
+AC: __journal__: Journal the paper was published in.
+
+AD: __DOI__: DOI of the paper.
+
+AE: __fulltext_ID__: An ID that is used to link the paper for data extraction to the record of screened full texts.
+
+### Sample sizes
+
+#### Table S2
+Sample sizes for our data set in terms of effect sizes, cohorts, studies, species, and the number of effect sizes in the different levels of categorical variables (factors), split by ecological group (seabird, waterbird and landbird), and overall.   
+
+```{r sample-sizes}
+
+# making a table of sample sizes for different variables
+df %>% group_by(taxa) %>% 
+  summarise(
+    `Effect sizes (analyses)` = n(),
+    `Cohort` = n_distinct(cohort_ID),
+    `Studies` = n_distinct(authors),
+    `Species` = n_distinct(species_ID),
+    `Arrival at breeding grounds` = sum(annual_event == "Arrival_breed", na.rm=T),
+    `Departure from breeding grounds` = sum(annual_event == "Depart_breed", na.rm=T),
+    `Arrival at non-breeding grounds` = sum(annual_event == "Nonbreed_arrival", na.rm=T),
+    `Departure from non-breeding grounds` = sum(annual_event == "Nonbreed_depart", na.rm=T),
+    `Conventional method` = sum(method == "Conventional", na.rm = T),
+    `GLS method` = sum(method == "GLS", na.rm = T),
+    `Satellite method`  = sum(method == "Satellite", na.rm = T),
+    `Female` = sum(sex == "F", na.rm=T),
+    `Male` = sum(sex == "M", na.rm=T),
+    `Mixed sex` = sum(sex == "B", na.rm=T)
+  ) -> n_table1
+
+n_table2 <-t(n_table1[,-1])
+colnames(n_table2) <- c("Landbird", "Seabird", "Waterbird")
+n_table2 %>% as_tibble(rownames = "Number of") %>% 
+  mutate(All = Landbird + Seabird + Waterbird) %>%  
+  kable() %>% kable_styling("striped", position = "left") %>%
+  pack_rows("All data", 1, 4) %>%
+  pack_rows("Annual event", 5, 8) %>%
+  pack_rows("Tracking method", 9, 11) %>%
+  pack_rows("Sex", 12, 14)
+
+```
+
+### Marking locations of studies
+#### Figure 1
+```{r figure1, fig.width=10, fig.height=5}
+
+worldmap <- map_data('world') # get map data
+
+# Plot of world with all tracking study locations
+world <- ggplot() + geom_polygon(data = worldmap, aes(x=long, y = lat, group = group), fill = "grey80", 
+                                  colour = NA, size = 0.1) + 
+    coord_fixed(1.3) +
+    theme_minimal() +
+    scale_colour_manual(values = c("Seabird" = "#009E73",  "Landbird" = "#D55E00",  "Waterbird"= "#0072B2")) +
+    geom_point(data=df, aes(x= long, y =lat, colour=taxa, shape=method), size =1.5) +
+    geom_rect(aes(xmin= -12, xmax= 23, ymin= 32, ymax= 64), fill = NA, colour = "black", size = 0.3) +
+    theme(panel.grid = element_line(colour = "white"), axis.title = element_blank(), axis.text = element_blank(), 
+          axis.ticks = element_blank(), legend.position = "none")
+
+## Zoomed in plot on Europe
+zoom <- ggplot() + geom_polygon(data = worldmap, aes(x=long, y = lat, group = group), fill = "grey80", 
+                                 colour = NA, size = 0.2) + 
+    coord_sf(xlim= c(-11,23), ylim= c(32,64)) +
+    theme_minimal() +
+    theme(legend.text=element_text(size=6), legend.title=element_text(size=7, face="bold"), legend.key.size = unit(1, "mm")) +
+    theme(panel.grid = element_line(colour= "white"),
+          axis.title = element_blank(), axis.text = element_blank(),
+          panel.border = element_rect(colour = "black", fill = NA, size=0.5), 
+          axis.ticks = element_blank()) +
+    scale_colour_manual(name="Ecological group", values = c("Seabird" = "#009E73",  "Landbird" = "#D55E00",  "Waterbird"= "#0072B2")) +
+    scale_shape_discrete(name = "Method") +
+    geom_point(data=df, aes(x= long, y =lat, shape=method, colour=taxa),size =1.5)
+
+figure1 <- plot_grid(world, zoom, nrow=1, rel_widths = c(1.3,1))
+# ggsave("figs/Map_of_tagging_locations.pdf", dpi=600, width=180, height=60, units="mm")
+
+figure1
+
+```
+
+**Figure 1.** The marking locations of birds for all studies with repeatability estimates collated from the literature and included in analyses, coloured by ecological group (waterbird, seabird, or landbird), and shaped by tracking method (conventional, satellite, or GLS).
+
+## Meta-analysis
+
+### Calculating effect sizes
+
+We created our effect size (correlation coefficient *r* and intra-class correlation coefficient *ICC* and their Fisher's z transformation *Zr*) from repeatability values and associated sample sizes. We followed the equations outlined in @holtmann_metabolic_2017. We converted the negative repeatability estimates (n=13) in our dataset to zero, as they often only reflect noise around a statistical zero [@nakagawa_repeatability_2010], but you can find the meta-analytic and meta-regression models with the negative repeatability estimates included in Tables S12-19. 
+
+```{r effect-sizes}
+# Creating new columns for effect sizes (Zr) and sampling variance (VZr)
+df$VZr <- df$Zr <- NA
+
+# Calculate effect sizes using custom function
+for (i in as.numeric(rownames(df))) {
+  r <- df$R[i]
+  K <- df$k[i]
+  Est <- df$est[i]
+  
+  Zr <- Zr_transformation(r, K, Est)
+  
+  df$Zr[i] <- Zr
+  
+}
+# Calculate sampling variances using custom function
+for (i in as.numeric(rownames(df))) {
+  K <- df$k[i]
+  N <- df$n[i]
+  Est <- df$est[i]
+  
+  VZr <- Calc_SV(K,N,Est)
+  
+  df$VZr[i] <- VZr
+  
+}
+
+# Add a new column with all negative repeatability values set to zero
+df$Zr2 <- ifelse(df$Zr < 0, 0, df$Zr+0)
+
+```
+
+
+### Phylogenetic tree
+Since multiple bird species (n = `r (dplyr::n_distinct(df$species_ID))`) are included in this dataset, we needed to consider phylogenetic non-independence in our models [@chamberlain_does_2012, Cinar et al. 2022]. To generate the phylogeny, we used a phylogenetic tree from @jetz_global_2012 (provided by Benedikt Holtmann), which was prepared on the basis of Hackett backbone [Hackett tree; @hackett_phylogenomic_2008]. We first searched the tree for the species in our dataset to confirm and correct the species names. 
+
+- _Limosa lapponica baueri_ was assumed to be synonym to _Limosa lapponica_
+- _Limosa limosa limosa_ and _Limosa limosa islandica_ were assumed to be synonym to _Limosa limosa_
+- _Cygnus columbianus bewickii_ was assumed to be synonym to _Cygnus columbianus_
+- _Catharacta antarctica lonnbergi_ was assumed to be synonym to _Catharacta antarctica_
+- _Pterodroma deserta_ was assumed to be synonym to _Pterodroma mollis_
+- _Chen canagicus_ was assumed to be synonym to _Chen canagica_
+- _Anser caerulescens atlanticus_ was assumed to be synonym to _Chen caerulescens_
+
+We then trimmed the tree to include only the species names in our data set, and computed branch lengths using Grafen's method (Grafen, 1989) in the compute.brlen function in the R package ape [@paradis_ape_2019].
+
+#### Figure S3
+```{r phylo-tree, fig.width=10, fig.height=8}
+
+species_list <- unique(df$species_latin) # use unique() as some names are repeated
+species_list<-gsub(" ", "_", species_list) # replace spaces with underscore so they match tree
+
+# Load bird supertree based on Hackett's backbone 
+bird_tree_hackett <- read.tree(here("data", "Hackett.tre")) # tree provided by Benedikt Holtmann
+
+# Prune phylogentic tree for meta-analysis
+
+# Check the tree
+# bird_tree_hackett # 9993 tips = species
+# str(bird_tree_hackett) # has edge (branch) lengths
+bird_tree_hackett <- collapse.singles(bird_tree_hackett)
+
+# Get only bird species from the supertree that are also included in collected data
+bird_tree_species <- as.character(bird_tree_hackett$tip.label)
+
+# Check the overlap of species names between collected data file and the supertree
+# All species should be present. If not, species names may not match with names in the supertree
+# intersect(bird_tree_species, species_list) 
+# character(39) - should be 47, need to check which species do/do not match
+
+# gives list of species names which are not matched
+# species_list[!species_list %in% bird_tree_species]
+#"Limosa_lapponica_baueri"
+#"Cygnus_columbianus_bewickii"
+#"Limosa_limosa_limosa"
+#"Limosa_limosa_islandica"
+#"Catharacta_antarctica_lonnbergi"
+#"Pterodroma_deserta"
+#"Chen_canagicus"
+#"Anser_caerulescens_atlanticus"
+
+# making a new list so it is clear that this list of species is an updated version compared to the original one
+species_list_hackett <- species_list
+
+# Changing subspecies to species, or old genus names from papers to new 
+# Only Pterodroma deserta: 3 species in the Pterodroma feae/madeira/desertae complex were once believed to be subspecies of a single species: Pterodroma mollis
+species_list_hackett <- replace(species_list_hackett, species_list_hackett=="Limosa_lapponica_baueri", "Limosa_lapponica")
+species_list_hackett <- replace(species_list_hackett, species_list_hackett=="Limosa_limosa_limosa" | species_list_hackett=="Limosa_limosa_islandica" , "Limosa_limosa")
+species_list_hackett <- replace(species_list_hackett, species_list_hackett=="Cygnus_columbianus_bewickii", "Cygnus_columbianus")
+species_list_hackett <- replace(species_list_hackett, species_list_hackett=="Catharacta_antarctica_lonnbergi", "Catharacta_antarctica")
+species_list_hackett <- replace(species_list_hackett, species_list_hackett=="Pterodroma_deserta", "Pterodroma_mollis")
+species_list_hackett <- replace(species_list_hackett, species_list_hackett=="Chen_canagicus", "Chen_canagica")
+species_list_hackett <- replace(species_list_hackett, species_list_hackett=="Anser_caerulescens_atlanticus", "Chen_caerulescens")
+
+# Now check and see if all species are present in supertree
+# intersect(bird_tree_species, species_list_hackett) # = 47 (not 48, because L. l. limosa and L. i. islandica both changed to L. limosa)
+
+# Prune supertree to the list of taxa included in the data
+pruned_birds_stree <- drop.tip(bird_tree_hackett, bird_tree_hackett$tip.label[-match(species_list_hackett, bird_tree_hackett$tip.label)])
+
+# Check if tree is binary and ultrametric
+# is.binary(pruned_birds_stree) # TRUE
+# is.ultrametric(pruned_birds_stree) # TRUE
+
+# Save pruned tree to be use in the meta-analysis
+write.tree(pruned_birds_stree,
+           file = here("data", "birds_meta-analysis_tree.tre"), append = FALSE,
+           digits = 10, tree.names = FALSE
+)
+
+# Make phylogenetic correlation matrix
+
+# Using metafor - correlation matrix for species in tree
+varcor <- vcv(pruned_birds_stree, corr = TRUE)
+
+# Create a column called phylogeny, which matches the tree
+# Copied column to edit species names to match tree (as some sp. names are from old papers, or are subspecies)
+df$species_latin_hackett <- as.character(df$species_latin) 
+df$species_latin_hackett <-replace(df$species_latin_hackett, df$species_latin_hackett == "Limosa lapponica baueri", "Limosa lapponica")
+df$species_latin_hackett <- replace(df$species_latin_hackett, df$species_latin_hackett=="Limosa limosa limosa" | df$species_latin_hackett=="Limosa limosa islandica" , "Limosa limosa")
+df$species_latin_hackett <-replace(df$species_latin_hackett, df$species_latin_hackett == "Cygnus columbianus bewickii", "Cygnus columbianus")
+df$species_latin_hackett <-replace(df$species_latin_hackett, df$species_latin_hackett == "Catharacta antarctica lonnbergi", "Catharacta antarctica")
+df$species_latin_hackett <-replace(df$species_latin_hackett, df$species_latin_hackett == "Pterodroma deserta", "Pterodroma mollis")
+df$species_latin_hackett <-replace(df$species_latin_hackett, df$species_latin_hackett == "Chen canagicus", "Chen canagica")
+df$species_latin_hackett <-replace(df$species_latin_hackett, df$species_latin_hackett == "Anser caerulescens atlanticus", "Chen caerulescens")
+
+df$phylogeny<-gsub(" ", "_", df$species_latin_hackett)
+
+# Plot tree to see how it looks like
+plot(pruned_birds_stree, label.offset = 2, cex = 0.8, main = "'Hackett tree'", cex.main = 1, line = 0.5) # with branch lengths
+```
+
+**Figure S3.** Phylogenetic tree (with Hackett backbone) used for phylogenetic meta-analysis and meta-regression on repeatability in avian migratory timings.
+
+### Meta-analytic model
+
+#### Running multilevel meta-analytic model with and without phylogeny
+
+We used the `rma.mv` function from the package `metafor` [@viechtbauer_conducting_2010] to run all meta-analytic models and meta-regressions. This function allows us to incorporate variance-covariance matrices in the V term. We assumed a correlation of 0.5 
+[@noble_nonindependence_2017] that will be fitted as part of the random effect structure of our models but also test different levels of correlation (see Sensitivity analysis).
+
+As we have a multi-species dataset, we use the model that accounts for both the non-phylogenetic and phylogenetic species-level variance in addition to the full multilevel structure of the data as any attempts to simplify this model, such as using only the phylogenetic variance component, may lead to erroneous inferences from the data (Cinar et al. 2022).
+
+```{r meta-analytic-models}
+# Create a variance-covariance matrix at the cohort level
+VCV <- impute_covariance_matrix(vi = df$VZr, cluster = df$cohort_ID, r = 0.5)
+# Why 0.5 - see https://onlinelibrary.wiley.com/doi/full/10.1111/mec.14031
+
+ma_model1 <- rma.mv(yi = Zr2, V = VCV,
+                   random = list(~1 | es_ID, 
+                                 ~1 | paper_ID, 
+                                 ~1 | cohort_ID, 
+                                 ~1 | species_ID), 
+                   data = df)
+
+ma_model2 <- rma.mv(yi = Zr2, V = VCV, 
+                      random = list(~1 | es_ID, 
+                                    ~1 | paper_ID, 
+                                    ~1 | cohort_ID, 
+                                    ~1 | species_ID, # non-phylo effect
+                                    ~1 | phylogeny), # phylo effect
+                      R = list(phylogeny = varcor), # phylogenetic relatedness
+                      data = df)
+
+```
+
+#### Table S3
+Overall effects (meta-analytic means) and 95% confidence intervals (CIs) both in *Zr* and back-transformed to *ICC*, and heterogeneity, *I*^2^, for the multilevel intercept-only meta-analysis models including and excluding phylogeny.
+
+```{r meta-analytic-table}
+## # estimating I2 as measure of heterogeneity
+i2_ma1 <- round(i2_ml(ma_model1)*100,1)
+i2_ma2 <- round(i2_ml(ma_model2)*100,1)
+
+# Back-transform to ICC
+ma1 <- mod_results(ma_model1, mod="Int")
+ma1_mod_table <- ma1$mod_table
+
+ma2 <- mod_results(ma_model2, mod="Int")
+ma2_mod_table <- ma2$mod_table
+
+# need to calculate k for whole data set to use in formula
+
+k_all <- mean(df$k)
+
+for(i in names(ma1_mod_table)[2:6]){
+  
+  ma1_mod_table[i] <- Zr_to_ICC(ma1_mod_table[i], k_all)
+  
+}
+
+for(i in names(ma2_mod_table)[2:6]){
+  
+  ma2_mod_table[i] <- Zr_to_ICC(ma2_mod_table[i], k_all)
+  
+}
+
+# creating a table
+tibble(
+  Model = c("Meta-analysis (Zr)", "Meta-analysis (ICC)", "Meta-analysis phylo (Zr)", "Meta-analysis phylo (ICC)"),
+  `Overall mean` = c(ma_model1$b, ma1_mod_table$estimate, ma_model2$b, ma2_mod_table$estimate),
+  `Lower CI [0.025]` = c(ma_model1$ci.lb, ma1_mod_table$lowerCL, ma_model2$ci.lb, ma2_mod_table$lowerCL),
+  `Upper CI [0.975]` = c(ma_model1$ci.ub, ma1_mod_table$upperCL, ma_model2$ci.ub, ma2_mod_table$upperCL),
+  `I^2^~total~` = c(i2_ma1[1], NA, i2_ma2[1], NA),
+  `I^2^~es~` = c(i2_ma1[2], NA, i2_ma2[2], NA),
+  `I^2^~paper~` = c(i2_ma1[3], NA, i2_ma2[3], NA),
+  `I^2^~cohort~` = c(i2_ma1[4], NA, i2_ma2[4], NA),
+  `I^2^~species~` = c(i2_ma1[5], NA, i2_ma2[5], NA),
+  `I^2^~phylo~` = c(NA, NA, i2_ma2[6], NA),) %>% 
+  kable("html",  digits = 3) %>%
+  kable_styling("striped", position = "left")
+```
+
+#### Figure 2a
+
+```{r figure2a,  fig.width=7, fig.height=2}
+
+ma2_data <- ma2$data
+
+# back-transform model results to ICC
+# need to calculate k for whole data set to use in formula
+
+ma2_data$yi_ICC <- Zr_to_ICC(ma2_data$yi, k_all)
+
+ma2_data$moderator <- factor(ma2_data$moderator, levels = ma2_mod_table$name, labels = ma2_mod_table$name)
+ma2_data$scale <- (1/sqrt(ma2_data[,"vi"]))
+ma2_mod_table$K <- as.vector(by(ma2_data, ma2_data[,"moderator"], function(x) length(x[,"yi"])))
+ma2_group_no <- nrow(ma2_mod_table)
+
+# colour blind friendly colours with grey
+cbpl <- c("#E69F00","#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7", "#56B4E9", "#999999")
+
+# creating an orchard plot
+fig_ma2 <- ggplot(data = ma2_mod_table, aes(x = estimate, y = "Overall mean")) + 
+     scale_x_continuous(limits = c(-0.37, 1), breaks = seq(-0.4, 1, by = 0.2), labels = c("-0.4", "-0.2", "0.0", "0.2", "0.4", "0.6", "0.8", "1.0")) +
+    ggbeeswarm::geom_quasirandom(data = ma2_data, aes(x = yi_ICC, y = "Overall mean", size = scale), fill="black", groupOnX=FALSE, alpha = 0.2) +
+    geom_errorbarh(aes(xmin = lowerPR, xmax = upperPR), height = 0, show.legend = F, size = 0.5, alpha = 0.6) +
+    geom_errorbarh(aes(xmin = lowerCL, xmax = upperCL), height = 0, show.legend = F, size = 1.2) + 
+    geom_vline(xintercept = 0, linetype = 2, colour = "black", alpha = 0.5) +
+    geom_point(fill="black", size = 3, shape = 21) + 
+    annotate('text', x = 0.93, y = (seq(1, ma2_group_no, 1)+0.35), label= paste("italic(k)==", ma2_mod_table$K), parse=TRUE, hjust = "left", size=3.5) +
+    ggplot2::theme_bw() +
+    ggplot2::guides(fill="none", colour="none") +
+    ggplot2::theme(legend.position = c(1,0), legend.justification = c(1,0), legend.title = element_text(size=8), 
+                   legend.text = element_text(size=8), legend.key = element_rect(colour = NA, fill = NA), 
+                   legend.background = element_blank(), legend.direction = "horizontal",
+                   axis.text.x = element_text(size=9),
+                   axis.text.y = element_text(size=9, colour="black", hjust=0.5, angle=90), 
+                   axis.title.y = element_blank(), legend.key.size = unit(0.5,'cm')) +
+    ggplot2::labs(size=paste("Precision (1/SE)"), x=paste("Effect size (ICC)"))
+
+# For Figure 2
+
+a <- ggplot(data = ma2_mod_table, aes(x = estimate, y = "Overall mean")) + 
+     scale_x_continuous(limits = c(-0.37, 1), breaks = seq(-0.4, 1, by = 0.2), labels = c("-0.4", "-0.2", "0.0", "0.2", "0.4", "0.6", "0.8", "1.0")) +
+    ggbeeswarm::geom_quasirandom(data = ma2_data, aes(x = yi_ICC, y = "Overall mean", size = scale), fill="black", groupOnX=FALSE, alpha = 0.2) +
+    geom_errorbarh(aes(xmin = lowerPR, xmax = upperPR), height = 0, show.legend = F, size = 0.5, alpha = 0.6) + # CI
+    geom_errorbarh(aes(xmin = lowerCL, xmax = upperCL), height = 0, show.legend = F, size = 1.2) + 
+    geom_vline(xintercept = 0, linetype = 2, colour = "black", alpha = 0.5) +
+    geom_point(fill="black", size = 3, shape = 21) + 
+    annotate('text', x = 0.93, y = (seq(1, ma2_group_no, 1)+0.35), label= paste("italic(k)==", ma2_mod_table$K), parse=TRUE, hjust = "left", size=3.5) +
+    ggplot2::theme_bw() +
+    ggplot2::guides(fill="none", colour="none") +
+    ggplot2::theme(legend.position = c(1,0), legend.justification = c(1,0), legend.title = element_text(size=8), 
+                   legend.text = element_text(size=8), legend.key = element_rect(colour = NA, fill = NA), 
+                   legend.background = element_blank(), legend.direction = "horizontal", 
+                   axis.text.y = element_text(size=9, colour="black", hjust=0.5, angle=90), 
+                   axis.title = element_blank(), legend.key.size = unit(0.5,'cm')) +
+    ggplot2::labs(size=paste("Precision (1/SE)"))
+
+fig_ma2
+
+```
+
+**Figure 2a.** Repeatability of avian migration timing for all estimates together. The plot shows the phylogenetic meta-analytic mean with 95% confidence intervals (thick lines, indicating uncertainty around the overall estimate) and 95% prediction intervals (thin lines, indicating the possible range for 95% of new (or simply not included) effect sizes), observed effect sizes (back-transformed to ICC) scaled by precision (circles) and k = number of effect sizes. The graph was constructed using code adapted from the `orchard_plot` function in the orchaRd package [@nakagawa_orchard_2021].
+
+## Meta-regression
+
+We ran a univariate meta-regression model for each of the following moderators: 1) `annual_event`, 2) `method`, 3) `taxa`, 4) `sex` and 5) number of samples per individual (`k`).
+
+### Univariate (uni-predictor) analyses
+
+We first conducted a series of meta-regression models with each of the moderators introduced above. 
+
+#### Period of the annual cycle
+
+```{r meta-regression-annual-event}
+# meta-regression: mutiple intercepts
+meta_regression1 <- rma.mv(yi = Zr2, V = VCV, 
+                           mods = ~ annual_event,
+                           random = list(~1 | es_ID, 
+                                         ~1 | paper_ID, 
+                                         ~1 | cohort_ID, 
+                                         ~1 | species_ID, 
+                                         ~1 | phylogeny),
+                           R = list(phylogeny = varcor), # added in phylogney
+                           data = df)
+
+meta_regression1b <- rma.mv(yi = Zr2, V = VCV, 
+                            mods = ~ relevel(annual_event, ref = "Depart_breed"),
+                            random = list(~1 | es_ID, 
+                                          ~1 | paper_ID, 
+                                          ~1 | cohort_ID, 
+                                          ~1 | species_ID, 
+                                          ~1 | phylogeny),
+                            R = list(phylogeny = varcor), # added in phylogney
+                            data = df)
+
+
+meta_regression1c <- rma.mv(yi = Zr2, V = VCV, 
+                            mods = ~ relevel(annual_event, ref = "Nonbreed_depart"),
+                            random = list(~1 | es_ID, 
+                                          ~1 | paper_ID, 
+                                          ~1 | cohort_ID, 
+                                          ~1 | species_ID, 
+                                          ~1 | phylogeny),
+                            R = list(phylogeny = varcor), # added in phylogney
+                            data = df)
+
+# meta-regression: contrast (for orchard plot)
+meta_regression1d <- rma.mv(yi = Zr2, V = VCV, 
+                            mods = ~ annual_event -1,
+                            random = list(~1 | es_ID, 
+                                          ~1 | paper_ID, 
+                                          ~1 | cohort_ID, 
+                                          ~1 | species_ID, 
+                                          ~1 | phylogeny),
+                            R = list(phylogeny = varcor), # added in phylogney
+                            data = df)
+```
+
+#### Table S4
+Regression coefficients (Estimate) and 95% confidence intervals (CIs) both in Zr and back-transformed to ICC from the meta-regression with `annual_event`. Note that `mu` means the group mean while `beta` represents the contrast between two groups in the Unit column. *R<sup>2</sup><sub>marginal</sub>* = `r round(orchaRd::r2_ml(meta_regression1)[[1]]*100,1)`%.
+
+```{r annual-event-table}
+# getting marginal R2
+r2_meta_regression1 <- r2_ml(meta_regression1)
+
+# getting estimates
+# including back-transformation to ICC
+
+mr1 <- mod_results(meta_regression1d, mod="annual_event")
+mr1_mod_table <- mr1$mod_table
+
+mr1_data <- mr1$data
+
+# calculate k for each method separately
+
+# df %>% group_by(annual_event) %>% summarise(mean(k))
+
+mr1_data <- mr1_data %>% mutate(k = case_when(moderator == "Arrival_breed" ~ 2.55, 
+                                              moderator == "Depart_breed" ~ 2.45,
+                                              moderator == "Nonbreed_arrival" ~ 3.20,
+                                              moderator == "Nonbreed_depart" ~ 2.94))
+
+mr1_data$yi_ICC <- Zr_to_ICC(mr1_data$yi, mr1_data$k)
+
+mr1_mod_table$k <- c(2.55, 2.45, 3.20, 2.94)
+
+for(i in names(mr1_mod_table)[2:6]){
+  
+  mr1_mod_table[i] <- Zr_to_ICC(mr1_mod_table[i], mr1_mod_table$k)
+  
+}
+
+# creating a table
+tibble(
+  `Fixed effect` = c(rep(as.character(mr1_mod_table$name),2), cont_gen(mr1_mod_table$name)),
+  `Unit` = c(rep(c("Zr (mu)", "ICC (mu)"),each = 4), rep("Zr (beta)", 6)),
+  `Estimate` = c(meta_regression1d$b, mr1_mod_table$estimate, 
+                 meta_regression1$b[-1], meta_regression1b$b[-(1:2)], meta_regression1c$b[-(1:3)]),
+  `Lower CI [0.025]` = c(meta_regression1d$ci.lb, mr1_mod_table$lowerCL,
+                         meta_regression1$ci.lb[-1], meta_regression1b$ci.lb[-(1:2)], meta_regression1c$ci.lb[-(1:3)]),
+  `Upper CI  [0.975]` = c(meta_regression1d$ci.ub, mr1_mod_table$upperCL,
+                         meta_regression1$ci.ub[-1], meta_regression1b$ci.ub[-(1:2)], meta_regression1c$ci.ub[-(1:3)])) -> t_annual_event
+ # `R2` = c(r2_meta_regression1[1], rep(NA,13))) -> 
+
+t_annual_event %>% kable("html", digits = 3) %>%
+  kable_styling("striped", position = "left")
+               
+```
+
+#### Figure 2b 
+
+```{r figure2b, fig.width=7, fig.height=4}
+# Orchard plot for annual event with ICC
+
+mr1_data$moderator <- factor(mr1_data$moderator, levels = mr1_mod_table$name, labels = mr1_mod_table$name)
+mr1_data$scale <- (1/sqrt(mr1_data[,"vi"]))
+mr1_mod_table$K <- as.vector(by(mr1_data, mr1_data[,"moderator"], function(x) length(x[,"yi"])))
+mr1_group_no <- nrow(mr1_mod_table)
+
+image_ABegg <- readPNG(here("images/AB_eggs_icon.png"))
+image_ANB <- readPNG(here("images/ANB_icon.png"))
+image_DBchick <- readPNG(here("images/DB_chicks_icon.png"))
+image_DNB <- readPNG(here("images/DNB_icon.png"))
+
+# creating an orchard plot
+
+# fig_annual_event <- ggplot(data = mr1_mod_table, aes(x = estimate, y = name)) + 
+#     scale_x_continuous(limits = c(-0.4, 1), breaks = seq(-0.4, 1, by = 0.2), labels = c("-0.4", "-0.2", "0.0", "0.2", # "0.4", "0.6", "0.8", "1.0")) + 
+#     ggbeeswarm::geom_quasirandom(data = mr1_data, aes(x = yi_ICC, y = moderator, size = scale, colour=moderator), groupOnX=FALSE, # alpha = 0.4) +
+#     geom_errorbarh(aes(xmin = lowerPR, xmax = upperPR), height = 0, show.legend = F, size = 0.5, alpha = 0.6) + # CI
+#     geom_errorbarh(aes(xmin = lowerCL, xmax = upperCL), height = 0, show.legend = F, size = 1.2) + 
+#     geom_vline(xintercept = 0, linetype = 2, colour = "black", alpha = 0.5) +
+#     geom_point(aes(fill=name), size = 3, shape = 21) + 
+#     annotate('text', x = 0.93, y = (seq(1, mr1_group_no, 1)+0.35), label= paste("italic(k)==", mr1_mod_table$K), parse=TRUE, hjust # = "left", size=3.5) +
+#     ggplot2::theme_bw() +
+#     ggplot2::guides(fill="none", colour="none") +
+#     ggplot2::theme(axis.text.y = element_text(size=9, colour="black", hjust=0.5, angle=90),
+#                    legend.position = "none", axis.title.y = element_blank(), axis.text.x = element_text(size=9)) +
+#     scale_y_discrete(labels=c("Arrival_breed" = "Arrive", "Depart_breed" = "Depart", "Nonbreed_arrival" = "Arrive", # "Nonbreed_depart" = "Depart")) +
+# 	      scale_fill_manual(values=cbpl) +
+# 	      scale_colour_manual(values=cbpl) +
+#     ggplot2::labs(size=paste("Precision (1/SE)"), x=paste("Effect size (ICC)")) +
+#     annotation_custom(grid::rasterGrob(image_DNB), xmin = -0.45, xmax = -0.25, ymin = 3.7, ymax = 4.3) +
+#     annotation_custom(grid::rasterGrob(image_ANB), xmin = -0.45, xmax = -0.25, ymin = 2.7, ymax = 3.3) +
+#     annotation_custom(grid::rasterGrob(image_DBchick), xmin = -0.45, xmax = -0.25, ymin = 1.7, ymax = 2.3) +
+#     annotation_custom(grid::rasterGrob(image_ABegg), xmin = -0.45, xmax = -0.25, ymin = 0.7, ymax = 1.3)
+# 
+# # for Figure 2
+# 
+# b <- ggplot(data = mr1_mod_table, aes(x = estimate, y = name)) + 
+#     scale_x_continuous(limits = c(-0.37, 1), breaks = seq(-0.4, 1, by = 0.2), labels = c("-0.4", "-0.2", "0.0", "0.2", "0.4", "0.6", "0.8", "1.0")) + 
+#     ggbeeswarm::geom_quasirandom(data = mr1_data, aes(x = yi_ICC, y = moderator, size = scale, colour=moderator), groupOnX=FALSE, alpha = 0.4) +
+#     geom_errorbarh(aes(xmin = lowerPR, xmax = upperPR), height = 0, show.legend = F, size = 0.5, alpha = 0.6) + # CI
+#     geom_errorbarh(aes(xmin = lowerCL, xmax = upperCL), height = 0, show.legend = F, size = 1.2) + 
+#     geom_vline(xintercept = 0, linetype = 2, colour = "black", alpha = 0.5) +
+#     geom_point(aes(fill=name), size = 3, shape = 21) + 
+#     annotate('text', x = 0.93, y = (seq(1, mr1_group_no, 1)+0.35), label= paste("italic(k)==", mr1_mod_table$K), parse=TRUE, hjust = "left", size=3.5) +
+#     ggplot2::theme_bw() +
+#     ggplot2::guides(fill="none", colour="none") +
+#     ggplot2::theme(axis.text.y = element_text(size=9, colour="black", hjust=0.5, angle=90),
+#                    legend.position = "none", axis.title = element_blank()) +
+#     scale_y_discrete(labels=c("Arrival_breed" = "Arrive", "Depart_breed" = "Depart", "Nonbreed_arrival" = "Arrive", "Nonbreed_depart" = "Depart")) +
+# 	      scale_fill_manual(values=cbpl) +
+# 	      scale_colour_manual(values=cbpl) +
+#     annotation_custom(grid::rasterGrob(image_DNB), xmin = -0.45, xmax = -0.25, ymin = 3.7, ymax = 4.3) +
+#     annotation_custom(grid::rasterGrob(image_ANB), xmin = -0.45, xmax = -0.25, ymin = 2.7, ymax = 3.3) +
+#     annotation_custom(grid::rasterGrob(image_DBchick), xmin = -0.45, xmax = -0.25, ymin = 1.7, ymax = 2.3) +
+#     annotation_custom(grid::rasterGrob(image_ABegg), xmin = -0.45, xmax = -0.25, ymin = 0.7, ymax = 1.3)
+
+# fig_annual_event
+
+```
+
+![](C:/Users/rst18vzu/OneDrive - University of East Anglia/PhD/Lit. review/Meta-analysis/Avian_migration_meta-analysis/figs/Fig2b_zero_for_Rmd.png){width=85%}
+
+**Figure 2b.** Repeatability of avian migration timing for annual migration events. The plot shows the group-wise means with 95% confidence intervals (thick lines) and 95% prediction intervals (thin lines), observed effect sizes (back-transformed to ICC) scaled by precision (circles) and k = number of effect sizes. Note this plot was edited in Affinity Designer after construction in R.
+
+#### The effect of tracking method
+
+```{r meta-regression-method}
+meta_regression2 <- rma.mv(yi = Zr2, V = VCV, 
+                      mods = ~ method,
+                      random = list(~1 | es_ID, 
+                                    ~1 | paper_ID, 
+                                    ~1 | cohort_ID, 
+                                    ~1 | species_ID, 
+                                    ~1 | phylogeny),
+                      R = list(phylogeny = varcor),
+                      data = df)
+
+# reordering
+# df$method <- factor(df$method, levels = c("Conventional", "GLS", "Satellite"))
+
+meta_regression2b <- rma.mv(yi = Zr2, V = VCV, 
+                            mods = ~ relevel(method, ref = "GLS"),
+                            random = list(~1 | es_ID, 
+                                          ~1 | paper_ID, 
+                                          ~1 | cohort_ID, 
+                                          ~1 | species_ID, 
+                                          ~1 | phylogeny),
+                            R = list(phylogeny = varcor),
+                            data = df)
+
+# Orchard plot - need meta-regression without intercept
+meta_regression2c <- rma.mv(yi = Zr2, V = VCV, 
+                            mods = ~ method -1,
+                            random = list(~1 | es_ID, 
+                                          ~1 | paper_ID, 
+                                          ~1 | cohort_ID, 
+                                          ~1 | species_ID, 
+                                          ~1 | phylogeny),
+                            R = list(phylogeny = varcor),
+                            data = df)
+
+```
+
+#### Table S5
+Regression coefficients (Estimate) and 95% confidence intervals (CIs) both in Zr and back-transformed to ICC from the meta-regression with `method`. Note that `mu` means the group mean while `beta` represents the contrast between two groups in the Unit column. *R<sup>2</sup><sub>marginal</sub>* = `r round(orchaRd::r2_ml(meta_regression2)[[1]]*100,1)`%.
+
+```{r method-table}
+# getting marginal R2
+r2_meta_regression2 <- r2_ml(meta_regression2)
+
+# getting estimates
+# including back-transformation to ICC
+
+mr2 <- mod_results(meta_regression2c, mod="method")
+mr2_mod_table <- mr2$mod_table
+
+mr2_data <- mr2$data
+
+# calculate k for each method separately
+
+#df %>% group_by(method) %>% summarise(mean(k))
+
+
+mr2_data <- mr2_data %>% mutate(k = case_when(moderator == "GLS" ~ 2.20, 
+                                              moderator == "Conventional" ~ 3.13,
+                                              moderator == "Satellite" ~ 3.28))
+
+mr2_data$yi_ICC <- Zr_to_ICC(mr2_data$yi, mr2_data$k)
+
+mr2_mod_table$k <- c(3.13, 2.20, 3.28)
+
+for(i in names(mr2_mod_table)[2:6]){
+  
+  mr2_mod_table[i] <- Zr_to_ICC(mr2_mod_table[i], mr2_mod_table$k)
+  
+}
+
+# creating a table
+tibble(
+  `Fixed effect` = c(rep(as.character(mr2_mod_table$name),2), cont_gen(mr2_mod_table$name)),
+  `Unit` = c(rep(c("Zr (mu)", "ICC (mu)"),each = 3), rep("Zr (beta)", 3)),
+  `Estimate` = c(meta_regression2c$b, mr2_mod_table$estimate, 
+                 meta_regression2$b[-1], meta_regression2b$b[-(1:2)]),
+  `Lower CI [0.025]` = c(meta_regression2c$ci.lb, mr2_mod_table$lowerCL,
+                         meta_regression2$ci.lb[-1], meta_regression2b$ci.lb[-(1:2)]),
+  `Upper CI  [0.975]` = c(meta_regression2c$ci.ub, mr2_mod_table$upperCL,
+                         meta_regression2$ci.ub[-1], meta_regression2b$ci.ub[-(1:2)])) -> t_method
+ # `R2` = c(r2_meta_regression2[1], rep(NA,8))) -> t_method
+
+t_method %>% kable("html", digits = 3) %>%
+  kable_styling("striped", position = "left") 
+```
+
+#### Figure 2c
+```{r figure2c, fig.width=7, fig.height= 3}
+
+mr2_data$moderator <- factor(mr2_data$moderator, levels = mr2_mod_table$name, labels = mr2_mod_table$name)
+mr2_data$scale <- (1/sqrt(mr2_data[,"vi"]))
+mr2_mod_table$K <- as.vector(by(mr2_data, mr2_data[,"moderator"], function(x) length(x[,"yi"])))
+mr2_group_no <- nrow(mr2_mod_table)
+
+image_conventional <- readPNG(here("images/Conventional_icon.png"))
+image_GLS <- readPNG(here("images/GLS_icon.png"))
+image_satellite <- readPNG(here("images/Satellite_icon.png"))
+
+# creating orchaRd plot
+fig_method <- ggplot(data = mr2_mod_table, aes(x = estimate, y = name)) + 
+    scale_x_continuous(limits = c(-0.37, 1), breaks = seq(-0.4, 1, by = 0.2), labels = c("-0.4", "-0.2", "0.0", "0.2", "0.4", "0.6", "0.8", "1.0")) + 
+    ggbeeswarm::geom_quasirandom(data = mr2_data, aes(x = yi_ICC, y = moderator, size = scale, colour=moderator), groupOnX=FALSE, alpha = 0.4) +
+    geom_errorbarh(aes(xmin = lowerPR, xmax = upperPR), height = 0, show.legend = F, size = 0.5, alpha = 0.6) + # CI
+    geom_errorbarh(aes(xmin = lowerCL, xmax = upperCL), height = 0, show.legend = F, size = 1.2) + 
+    geom_vline(xintercept = 0, linetype = 2, colour = "black", alpha = 0.5) +
+    geom_point(aes(fill=name), size = 3, shape = 21) + 
+    annotate('text', x = 0.93, y = (seq(1, mr2_group_no, 1)+0.35), label= paste("italic(k)==", mr2_mod_table$K), parse=TRUE, hjust = "left", size=3.5) +
+    scale_color_manual(values = c("Conventional" = "#CC79A7",  "GLS" = "#D55E00",  "Satellite"= "#0072B2")) +
+  scale_fill_manual(values = c("Conventional" = "#CC79A7",  "GLS" = "#D55E00",  "Satellite"= "#0072B2")) +
+    ggplot2::theme_bw() +
+    ggplot2::guides(fill="none", colour="none") +
+    ggplot2::theme(axis.text.y = element_text(size=9, colour="black", hjust=0.5, angle=90),
+                   legend.position = "none", axis.title.y = element_blank(), axis.text.x=element_text(size=9)) +
+    annotation_custom(grid::rasterGrob(image_satellite), xmin = -0.45, xmax = -0.25, ymin = 2.7, ymax = 3.3) +
+    annotation_custom(grid::rasterGrob(image_GLS), xmin = -0.45, xmax = -0.25, ymin = 1.7, ymax = 2.3) +
+    annotation_custom(grid::rasterGrob(image_conventional), xmin = -0.45, xmax = -0.25, ymin = 0.7, ymax = 1.3) +
+  labs(x="Effect size (ICC)")
+
+# for Figure 2
+
+#c <- ggplot(data = mr2_mod_table, aes(x = estimate, y = name)) + 
+#    scale_x_continuous(limits = c(-0.37, 1), breaks = seq(-0.4, 1, by = 0.2), labels = c("-0.4", "-0.2", "0.0", "0.2", "0.4", "0.6", "0.8", "1.0")) + 
+#    ggbeeswarm::geom_quasirandom(data = mr2_data, aes(x = yi_ICC, y = moderator, size = scale, colour=moderator), groupOnX=FALSE, alpha = 0.4) +
+#    geom_errorbarh(aes(xmin = lowerPR, xmax = upperPR), height = 0, show.legend = F, size = 0.5, alpha = 0.6) + # CI
+#    geom_errorbarh(aes(xmin = lowerCL, xmax = upperCL), height = 0, show.legend = F, size = 1.2) + 
+#    geom_vline(xintercept = 0, linetype = 2, colour = "black", alpha = 0.5) +
+#    geom_point(aes(fill=name), size = 3, shape = 21) + 
+#    annotate('text', x = 0.93, y = (seq(1, mr2_group_no, 1)+0.35), label= paste("italic(k)==", mr2_mod_table$K), parse=TRUE, hjust = "left", size=3.5) +
+#    scale_color_manual(values = c("Conventional" = "#CC79A7",  "GLS" = "#D55E00",  "Satellite"= "#0072B2")) +
+#  scale_fill_manual(values = c("Conventional" = "#CC79A7",  "GLS" = "#D55E00",  "Satellite"= "#0072B2")) +
+#    ggplot2::theme_bw() +
+#    ggplot2::guides(fill="none", colour="none") +
+#    ggplot2::theme(axis.text.y = element_text(size=9, colour="black", hjust=0.5, angle=90),
+#                   legend.position = "none", axis.title = element_blank()) +
+#    annotation_custom(grid::rasterGrob(image_satellite), xmin = -0.45, xmax = -0.25, ymin = 2.7, ymax = 3.3) +
+#    annotation_custom(grid::rasterGrob(image_GLS), xmin = -0.45, xmax = -0.25, ymin = 1.7, ymax = 2.3) +
+#    annotation_custom(grid::rasterGrob(image_conventional), xmin = -0.45, xmax = -0.25, ymin = 0.7, ymax = 1.3)
+
+fig_method
+
+```
+
+**Figure 2c.** Repeatability of avian migration timing for tracking method. The plot shows the group-wise means with 95% confidence intervals (thick lines) and 95% prediction intervals (thin lines), observed effect sizes (back-transformed to ICC) scaled by precision (circles) and k = number of effect sizes.
+
+#### The effect of sex
+
+```{r meta-regression-sex}
+# reordering
+#df$sex <- factor(df$sex, levels = c("F", "M", "B"))
+
+meta_regression4 <- rma.mv(yi = Zr2, V = VCV, 
+                           mods = ~ sex,
+                           random = list(~1 | es_ID, 
+                                         ~1 | paper_ID, 
+                                         ~1 | cohort_ID, 
+                                         ~1 | species_ID, 
+                                         ~1 | phylogeny),
+                           R = list(phylogeny = varcor),
+                           data = df)
+
+meta_regression4b <- rma.mv(yi = Zr2, V = VCV, 
+                            mods = ~ relevel(sex, ref = "M"),
+                            random = list(~1 | es_ID, 
+                                          ~1 | paper_ID, 
+                                          ~1 | cohort_ID, 
+                                          ~1 | species_ID, 
+                                          ~1 | phylogeny),
+                            R = list(phylogeny = varcor), 
+                            data = df)
+
+# Orchard plot - need meta-regression without intercept
+meta_regression4c <- rma.mv(yi = Zr2, V = VCV, 
+                            mods = ~ sex -1,
+                            random = list(~1 | es_ID, 
+                                          ~1 | paper_ID, 
+                                          ~1 | cohort_ID, 
+                                          ~1 | species_ID, 
+                                          ~1 | phylogeny),
+                            R = list(phylogeny = varcor),
+                            data = df)
+
+
+```
+
+#### Table S6
+Regression coefficients (Estimate) and 95% confidence intervals (CIs) both in Zr and back-transformed to ICC from the meta-regression with `sex`. Note that `mu` means the group mean while `beta` represents the contrast between two groups in the Unit column. *R<sup>2</sup><sub>marginal</sub>* = `r round(orchaRd::r2_ml(meta_regression4)[[1]]*100,1)`%. B = both sexes, M = male, and F = female.
+
+```{r sex-table}
+# getting marginal R2
+r2_meta_regression4 <- r2_ml(meta_regression4)
+
+# getting estimates
+# including back-transformation to ICC
+
+mr4 <- mod_results(meta_regression4c, mod="sex")
+mr4_mod_table <- mr4$mod_table
+
+mr4_data <- mr4$data
+
+# calculate k for each method separately
+
+#df %>% group_by(sex) %>% summarise(mean(k))
+
+
+mr4_data <- mr4_data %>% mutate(k = case_when(moderator == "F" ~ 2.37, 
+                                              moderator == "M" ~ 2.38,
+                                              moderator == "B" ~ 2.82))
+
+mr4_data$yi_ICC <- Zr_to_ICC(mr4_data$yi, mr4_data$k)
+
+mr4_mod_table$k <- c(2.37, 2.38, 2.82)
+
+for(i in names(mr4_mod_table)[2:6]){
+  
+  mr4_mod_table[i] <- Zr_to_ICC(mr4_mod_table[i], mr4_mod_table$k)
+  
+}
+
+# creating a table
+tibble(
+  `Fixed effect` = c(rep(as.character(mr4_mod_table$name),2), cont_gen(mr4_mod_table$name)),
+  `Unit` = c(rep(c("Zr (mu)", "ICC (mu)"),each = 3), rep("Zr (beta)", 3)),
+  `Estimate` = c(meta_regression4c$b, mr4_mod_table$estimate, 
+                 meta_regression4$b[-1], meta_regression4b$b[-(1:2)]),
+  `Lower CI [0.025]` = c(meta_regression4c$ci.lb, mr4_mod_table$lowerCL,
+                         meta_regression4$ci.lb[-1], meta_regression4b$ci.lb[-(1:2)]),
+  `Upper CI  [0.975]` = c(meta_regression4c$ci.ub, mr4_mod_table$upperCL,
+                         meta_regression4$ci.ub[-1], meta_regression4b$ci.ub[-(1:2)])) -> t_sex
+ # `R2` = c(r2_meta_regression4[1], rep(NA,8))) -> t_sex
+
+t_sex %>% kable("html", digits = 3) %>%
+  kable_styling("striped", position = "left")
+
+```
+
+#### Figure 2e
+```{r figure2e, fig.width=7, fig.height= 3}
+
+mr4_data$moderator <- factor(mr4_data$moderator, levels = mr4_mod_table$name, labels = mr4_mod_table$name)
+mr4_data$scale <- (1/sqrt(mr4_data[,"vi"]))
+mr4_mod_table$K <- as.vector(by(mr4_data, mr4_data[,"moderator"], function(x) length(x[,"yi"])))
+mr4_group_no <- nrow(mr4_mod_table)
+
+image_male <- readPNG(here("images/Male_icon.png"))
+image_female <- readPNG(here("images/Female_icon.png"))
+image_both <- readPNG(here("images/Both_sex_icon.png"))
+
+# creating orchaRd plot
+# for Figure 2
+
+e <- ggplot(data = mr4_mod_table, aes(x = estimate, y = name)) + 
+    scale_x_continuous(limits = c(-0.37, 1), breaks = seq(-0.4, 1, by = 0.2), labels = c("-0.4", "-0.2", "0.0", "0.2", "0.4", "0.6", "0.8", "1.0")) +  
+    ggbeeswarm::geom_quasirandom(data = mr4_data, aes(x = yi_ICC, y = moderator, size = scale, colour=moderator), groupOnX=FALSE, alpha = 0.4) +
+    geom_errorbarh(aes(xmin = lowerPR, xmax = upperPR), height = 0, show.legend = F, size = 0.5, alpha = 0.6) + # CI
+    geom_errorbarh(aes(xmin = lowerCL, xmax = upperCL), height = 0, show.legend = F, size = 1.2) + 
+    geom_vline(xintercept = 0, linetype = 2, colour = "black", alpha = 0.5) +
+    geom_point(aes(fill=name), size = 3, shape = 21) + 
+    annotate('text', x = 0.93, y = (seq(1, mr4_group_no, 1)+0.35), label= paste("italic(k)==", mr4_mod_table$K), parse=TRUE, hjust = "left", size=3.5) +
+    ggplot2::theme_bw() +
+    ggplot2::guides(fill="none", colour="none") +
+    ggplot2::theme(axis.text.y = element_text(size=9, colour="black", hjust=0.5, angle=90),
+                   legend.position = "none", axis.title.y = element_blank()) +
+    ggplot2::labs(x=paste("Effect size (ICC)")) +
+    scale_y_discrete(labels=c("F" = "Female", "M" = "Male", "B" = "Both")) +
+    	      scale_fill_manual(values=cbpl) +
+	      scale_colour_manual(values=cbpl) +
+        annotation_custom(grid::rasterGrob(image_male), xmin = -0.45, xmax = -0.25, ymin = 2.7, ymax = 3.3) +
+    annotation_custom(grid::rasterGrob(image_female), xmin = -0.45, xmax = -0.25, ymin = 1.7, ymax = 2.3) +
+    annotation_custom(grid::rasterGrob(image_both), xmin = -0.45, xmax = -0.25, ymin = 0.7, ymax = 1.3)
+
+e
+
+```
+
+**Figure 2e.** Repeatability of avian migration timing for sex. The plot shows the group-wise means with 95% confidence intervals (thick lines) and 95% prediction intervals (thin lines), observed effect sizes (back-transformed to ICC) scaled by precision (circles) and k = number of effect sizes.
+
+
+#### The effect of ecological group
+
+```{r meta-regression-taxa}
+meta_regression3 <- rma.mv(yi = Zr2, V = VCV, 
+                           mods = ~ taxa,
+                           random = list(~1 | es_ID, 
+                                         ~1 | paper_ID, 
+                                         ~1 | cohort_ID, 
+                                         ~1 | species_ID, 
+                                         ~1 | phylogeny),
+                           R = list(phylogeny = varcor), 
+                           data = df)
+
+# reordering
+#df$taxa <- factor(df$taxa, levels = c("Waterbird", "Seabird", "Landbird"))
+
+meta_regression3b <- rma.mv(yi = Zr2, V = VCV, 
+                           mods = ~ relevel(taxa, ref = "Waterbird"),
+                           random = list(~1 | es_ID, 
+                                         ~1 | paper_ID, 
+                                         ~1 | cohort_ID, 
+                                         ~1 | species_ID, 
+                                         ~1 | phylogeny),
+                           R = list(phylogeny = varcor), 
+                           data = df)
+
+# Orchard plot - need meta-regression without intercept
+meta_regression3c <- rma.mv(yi = Zr2, V = VCV, 
+                            mods = ~ taxa -1,
+                            random = list(~1 | es_ID, 
+                                          ~1 | paper_ID, 
+                                          ~1 | cohort_ID, 
+                                          ~1 | species_ID, 
+                                          ~1 | phylogeny),
+                            R = list(phylogeny = varcor),
+                            data = df)
+
+```
+
+#### Table S7
+Regression coefficients (Estimate) and 95% confidence intervals (CIs) both in Zr and back-transformed to ICC from the meta-regression with `taxa`. Note that `mu` means the group mean while `beta` represents the contrast between two groups in the Unit column. *R<sup>2</sup><sub>marginal</sub>* = `r round(orchaRd::r2_ml(meta_regression3)[[1]]*100,1)`%. 
+
+```{r taxa-table}
+# getting marginal R2
+r2_meta_regression3 <- r2_ml(meta_regression3)
+
+# getting estimates
+# including back-transformation to ICC
+
+mr3 <- mod_results(meta_regression3c, mod="taxa")
+mr3_mod_table <- mr3$mod_table
+
+mr3_data <- mr3$data
+
+# calculate k for each method separately
+
+#df %>% group_by(taxa) %>% summarise(mean(k))
+
+mr3_data <- mr3_data %>% mutate(k = case_when(moderator == "Landbird" ~ 2.68, 
+                                              moderator == "Seabird" ~ 2.38,
+                                              moderator == "Waterbird" ~ 3.08))
+
+mr3_data$yi_ICC <- Zr_to_ICC(mr3_data$yi, mr3_data$k)
+
+mr3_mod_table$k <- c(2.68, 2.38, 3.08)
+
+for(i in names(mr3_mod_table)[2:6]){
+  
+  mr3_mod_table[i] <- Zr_to_ICC(mr3_mod_table[i], mr3_mod_table$k)
+  
+}
+
+# creating a table
+tibble(
+  `Fixed effect` = c(rep(as.character(mr3_mod_table$name),2), cont_gen(mr3_mod_table$name)),
+  `Unit` = c(rep(c("Zr (mu)", "ICC (mu)"),each = 3), rep("Zr (beta)", 3)),
+  `Estimate` = c(meta_regression3c$b, mr3_mod_table$estimate, 
+                 meta_regression3$b[-1], meta_regression3b$b[-(1:2)]),
+  `Lower CI [0.025]` = c(meta_regression3c$ci.lb, mr3_mod_table$lowerCL,
+                         meta_regression3$ci.lb[-1], meta_regression3b$ci.lb[-(1:2)]),
+  `Upper CI  [0.975]` = c(meta_regression3c$ci.ub, mr3_mod_table$upperCL,
+                         meta_regression3$ci.ub[-1], meta_regression3b$ci.ub[-(1:2)])) -> t_method
+ # `R2` = c(r2_meta_regression3[1], rep(NA,8))) -> t_method
+
+t_method %>% kable("html", digits = 3) %>%
+  kable_styling("striped", position = "left") 
+
+```
+
+#### Figure 2d
+```{r figure2d, fig.width=7, fig.height= 3}
+
+mr3_data$moderator <- factor(mr3_data$moderator, levels = mr3_mod_table$name, labels = mr3_mod_table$name)
+mr3_data$scale <- (1/sqrt(mr3_data[,"vi"]))
+mr3_mod_table$K <- as.vector(by(mr3_data, mr3_data[,"moderator"], function(x) length(x[,"yi"])))
+mr3_group_no <- nrow(mr3_mod_table)
+
+image_waterbird <- readPNG(here("images/Waterbird_icon.png"))
+image_seabird <- readPNG(here("images/Seabird_icon.png"))
+image_landbird <- readPNG(here("images/Landbird_icon.png"))
+
+# creating orchaRd plot
+
+fig_eco_group <- ggplot(data = mr3_mod_table, aes(x = estimate, y = name)) + 
+    scale_x_continuous(limits = c(-0.37, 1), breaks = seq(-0.4, 1, by = 0.2), labels = c("-0.4", "-0.2", "0.0", "0.2", "0.4", "0.6", "0.8", "1.0")) + 
+    ggbeeswarm::geom_quasirandom(data = mr3_data, aes(x = yi_ICC, y = moderator, size = scale, colour=moderator), groupOnX=FALSE, alpha = 0.4) +
+    geom_errorbarh(aes(xmin = lowerPR, xmax = upperPR), height = 0, show.legend = F, size = 0.5, alpha = 0.6) + # CI
+    geom_errorbarh(aes(xmin = lowerCL, xmax = upperCL), height = 0, show.legend = F, size = 1.2) + 
+    geom_vline(xintercept = 0, linetype = 2, colour = "black", alpha = 0.5) +
+    geom_point(aes(fill=name), size = 3, shape = 21) + 
+    annotate('text', x = 0.93, y = (seq(1, mr3_group_no, 1)+0.35), label= paste("italic(k)==", mr3_mod_table$K), parse=TRUE, hjust = "left", size=3.5) +
+    ggplot2::theme_bw() +
+    ggplot2::guides(fill="none", colour="none") +
+    ggplot2::theme(axis.text.y = element_text(size=9, colour="black", hjust=0.5, angle=90),
+                   legend.position = "none", axis.title.y = element_blank(), axis.text.x=element_text(size=9)) +
+    # setting colours
+  scale_color_manual(values = c("Seabird" = "#009E73",  "Landbird" = "#D55E00",  "Waterbird"= "#0072B2")) +
+  scale_fill_manual(values = c("Seabird" = "#009E73",  "Landbird" = "#D55E00",  "Waterbird"= "#0072B2")) +
+    annotation_custom(grid::rasterGrob(image_waterbird), xmin = -0.45, xmax = -0.25, ymin = 2.7, ymax = 3.3) +
+    annotation_custom(grid::rasterGrob(image_seabird), xmin = -0.45, xmax = -0.25, ymin = 1.7, ymax = 2.3) +
+    annotation_custom(grid::rasterGrob(image_landbird), xmin = -0.45, xmax = -0.25, ymin = 0.7, ymax = 1.3) +
+  labs(x="Effect size (ICC)")
+
+fig_eco_group
+
+# for Figure 2
+
+d <- ggplot(data = mr3_mod_table, aes(x = estimate, y = name)) + 
+    scale_x_continuous(limits = c(-0.37,1), breaks = seq(-0.4, 1, by = 0.2), labels = c("-0.4","-0.2", "0.0", "0.2", "0.4", "0.6", "0.8", "1.0")) + 
+    ggbeeswarm::geom_quasirandom(data = mr3_data, aes(x = yi_ICC, y = moderator, size = scale, colour=moderator), groupOnX=FALSE, alpha = 0.4) +
+    geom_errorbarh(aes(xmin = lowerPR, xmax = upperPR), height = 0, show.legend = F, size = 0.5, alpha = 0.6) + # CI
+    geom_errorbarh(aes(xmin = lowerCL, xmax = upperCL), height = 0, show.legend = F, size = 1.2) + 
+    geom_vline(xintercept = 0, linetype = 2, colour = "black", alpha = 0.5) + # creating dots and different size (bee-swarm and bubbles)
+    geom_point(aes(fill=name), size = 3, shape = 21) + 
+    #ggplot2::annotate("text", x = max(mr2_data$yi_ICC) + (max(mr2_data$yi_ICC)*0.10), y = (seq(1, mr2_group_no, 1)+0.3),label = paste("italic(k)==", mr2_mod_table$K), parse = TRUE, hjust = "right", size = 3.5) +
+    annotate('text', x = 0.93, y = (seq(1, mr3_group_no, 1)+0.35), label= paste("italic(k)==", mr3_mod_table$K), parse=TRUE, hjust = "left", size=3.5) +
+    ggplot2::theme_bw() +
+    ggplot2::guides(fill="none", colour="none") +
+    ggplot2::theme(axis.text.y = element_text(size=9, colour="black", hjust=0.5, angle=90),
+                   legend.position = "none", axis.title = element_blank()) +
+    # setting colours
+  scale_color_manual(values = c("Seabird" = "#009E73",  "Landbird" = "#D55E00",  "Waterbird"= "#0072B2")) +
+  scale_fill_manual(values = c("Seabird" = "#009E73",  "Landbird" = "#D55E00",  "Waterbird"= "#0072B2")) +
+    annotation_custom(grid::rasterGrob(image_waterbird), xmin = -0.45, xmax = -0.25, ymin = 2.7, ymax = 3.3) +
+    annotation_custom(grid::rasterGrob(image_seabird), xmin = -0.45, xmax = -0.25, ymin = 1.7, ymax = 2.3) +
+    annotation_custom(grid::rasterGrob(image_landbird), xmin = -0.45, xmax = -0.25, ymin = 0.7, ymax = 1.3)
+
+```
+
+**Figure 2d.** Repeatability of avian migration timing for ecological group. The plot shows the group-wise means with 95% confidence intervals (thick lines) and 95% prediction intervals (thin lines), observed effect sizes (back-transformed to ICC) scaled by precision (circles) and k = number of effect sizes.
+
+#### Putting together Figure 2
+
+```{r fig2}
+
+# building fig 2 using patchwork
+
+#Figure2 <- (a / b / c / d / e + plot_layout(heights = c(1.8, 3.7, 3, 3, 3)) + plot_annotation(tag_levels = 'a', tag_suffix = ')'))
+
+#Figure2
+
+#ggsave(here('figs/Figure_2_R_zero.pdf'), width = 180, height = 300, units=c('mm'), dpi=600) 
+#edited this file in Affinity Designer
+
+```
+
+![](C:/Users/rst18vzu/OneDrive - University of East Anglia/PhD/Lit. review/Meta-analysis/Avian_migration_meta-analysis/figs/Figure_2_R_zero_final.jpg){width=80%}
+
+**Figure 2.** Putting all five panels together: Figure 2a - Figure 2e (see the main text). Note this plot was edited in Affinity Designer after construction in R.
+
+#### The effect of number of observations per individual (k)
+
+```{r meta-regression-k}
+
+meta_regression5 <- rma.mv(yi = Zr2, V = VCV, 
+                            mods = ~ k,
+                            random = list(~1 | es_ID, 
+                                          ~1 | paper_ID, 
+                                          ~1 | cohort_ID, 
+                                          ~1 | species_ID, 
+                                          ~1 | phylogeny),
+                            R = list(phylogeny = varcor),
+                            data = df)
+```
+
+#### Table S8
+Regression coefficients (Estimate) and 95% confidence intervals (CIs) in Zr from the meta-regression with `k` (number of observations per individual). *R<sup>2</sup><sub>marginal</sub>* = `r round(orchaRd::r2_ml(meta_regression5)[[1]]*100,1)`%.
+
+```{r k-table}
+# getting marginal R2
+r2_meta_regression5 <- r2_ml(meta_regression5)
+
+# creating a table
+tibble(
+  `Fixed effect` = c("Intercept", "k"),
+  `Estimate` = c(meta_regression5$b),
+  `Lower CI [0.025]` = c(meta_regression5$ci.lb),
+  `Upper CI  [0.975]` = c(meta_regression5$ci.ub)) -> t_k
+#  `R2` = c(r2_meta_regression5[1], NA)) -> t_k
+
+t_k %>% kable("html", digits = 3) %>%
+  kable_styling("striped", position = "left") 
+
+```
+
+#### Figure S4
+```{r figureS4, fig.width=7, fig.height= 4}
+pred_meta_regression5 <- predict.rma(meta_regression5)
+
+# creating bubble plot
+df %>% mutate(fit=pred_meta_regression5$pred, 
+               ci.lb=pred_meta_regression5$ci.lb,
+               ci.ub=pred_meta_regression5$ci.ub,
+               pr.lb=pred_meta_regression5$cr.lb,
+               pr.ub=pred_meta_regression5$cr.ub) %>% 
+ggplot(aes(x = k, y = Zr2)) +
+     geom_point(aes(size=(1/sqrt(VZr))), shape=21, alpha=0.5, fill = "grey85", colour="grey60", col="gray25",stroke=1) +
+     geom_line(aes(y = fit), size = 1.5, colour="darkorchid4")+
+  geom_ribbon(aes(ymin = ci.lb, ymax = ci.ub, color = NULL), alpha = .3, fill="darkorchid4") +
+  labs(x = "Number of observations per individual (k)", y = "Effect size (Zr)", size = "Precison (1/SE)") +
+  theme_bw() +
+  scale_size_continuous(range=c(1,12))+
+  geom_hline(yintercept = 0,linetype = 2, colour = "black",alpha=0.5) +
+  theme(text = element_text(size = 9, colour = "black", hjust = 0.5),
+          legend.text=element_text(size=8),
+          legend.position=c(1,1), 
+          legend.justification = c(1,1),
+          legend.background = element_blank(), 
+          legend.direction="horizontal",
+          legend.title = element_text(size=8)
+        )
+
+```
+
+**Figure S4.** Repeatability of avian migration timing for the continuous variable `k`, where the solid line represents the model estimate and the shading shows the 95% confidence intervals, with individual data points scaled by precision (1/SE).
+
+```{r meta-regression-outlier-k}
+df2 <- df %>% filter(k < 10)
+VCV2 <- impute_covariance_matrix(vi = df2$VZr, cluster = df2$cohort_ID, r = 0.5)
+
+meta_regression6 <- rma.mv(yi = Zr2, V = VCV2, 
+                           mods = ~ k,
+                           random = list(~1 | es_ID, 
+                                         ~1 | paper_ID, 
+                                         ~1 | cohort_ID, 
+                                         ~1 | species_ID, 
+                                         ~1 | phylogeny),
+                           R = list(phylogeny = varcor), # added in phylogney
+                           data = df2)
+```
+
+When we remove the two points with high `k` values (k = 12.4), the results are similar. There is no significant effect (slope = `r round(meta_regression6$b[2,1],3)`, 95% CI = [`r round(meta_regression6$ci.lb[2],3)`, `r round(meta_regression6$ci.ub[2],3)`]; *R<sup>2</sup><sub>marginal</sub>* = `r round(orchaRd::r2_ml(meta_regression6)[[1]]*100,1)`%) of 'k' on effect sizes, showing that repeatability does not vary with the number of observations per individual.
+
+
+### Model selection (multi-predictor model)
+
+Here we used the `MuMin` package to generate all possible moderator combinations (using all five variables: `annual_event`, `method`, `sex`, `taxa` & `k` (number of observations per individuals)), determine the importance of the moderators, and generate model-averaged estimates.
+
+```{r model-selection}
+eval(metafor:::.MuMIn)
+
+full_model_MuMIn <- rma.mv(yi = Zr2, V = VCV, 
+                          mods = ~ method + 
+                            taxa + 
+                            sex + 
+                            annual_event +
+                            k, 
+                          random = list(~1 | es_ID, 
+                                        ~1 | paper_ID, 
+                                        ~1 | cohort_ID, 
+                                        ~1 | species_ID, 
+                                        ~1 | phylogeny),
+                          R = list(phylogeny = varcor), 
+                          method = "ML", # maximum likelihood for model selection
+                          data = df)
+
+# vif.rma(full_model_MuMIn)  # No major problems of collinearity (VIF <4)
+
+candidate_models<-dredge(full_model_MuMIn) # Generate all possible combinations of moderators
+
+candidates_aic2 <- subset(candidate_models, delta<=2) # Display all models within 2 values of AICc
+
+importance <- sw(model.avg(candidate_models, subset=delta<=2))# relative importance (sum of weights) of the moderators
+
+mod.avg <- summary(model.avg(candidate_models, subset=delta<=2)) # Generate model-averaged estimates 
+
+confidence <- confint(mod.avg, full=TRUE) # Generate confidence intervals for the estimates averaged using full-averages procedures
+
+```
+
+#### Table S9
+The top five models within the $\Delta$AIC difference of 2, and which five variables: `annual_event`, `method`, `taxa`, `sex`, & `k` were included (indicated by $+$); model weights and the sum of weights for each of the variables are included. 
+
+```{r model-selection-table}
+# creating a table
+tibble(
+  `Model (variable weight)` = c("Model1", "Model2", "Model3", "Model4", "Model5", "(Sum of weights)"),
+  annual_event = c(if_else(candidates_aic2$annual_event == "+", "$+$", "NA"),round(importance[1],3) ),
+  taxa =  c(if_else(candidates_aic2$taxa== "+", "$+$", "NA"),round(importance[2], 3)),
+  method = c(if_else(candidates_aic2$method== "+", "$+$", "NA"),round(importance[3], 3)),
+  k = c(if_else(candidates_aic2$k <= 0, "$+$", "NA"),round(importance[4], 3)),
+  sex = c(if_else(candidates_aic2$sex== "+", "$+$", "NA"),round(importance[5], 3)),
+  delta_AICc = c(candidates_aic2$delta, NA),
+  Weight = c(candidates_aic2$weight, NA)) %>% 
+  kable("html", digits = 3) %>%
+  kable_styling("striped", position = "left")
+```
+
+#### Model averaging
+
+#### Table S10
+The average estimates for regression coefficients (Estimate) and 95% confidence intervals (CIs) from the model averaging procedure using full-averages (assuming zero values for moderators when they do not occur).
+```{r model-averaging}
+# creating a table
+tibble(
+  `Fixed effect` = c("Intercept",
+                     "Depart_breed", "Nonbreed_arrival", "Nonbreed_depart", 
+                     "Female","Male", "Seabird", "Waterbird", "GLS", "Satellite",
+                     "k"),
+  Estimate = mod.avg$coefmat.full[,1],
+  `Lower CI [0.025]` = confidence[,1],
+  `Upper CI  [0.975]` =  confidence[,2]) %>% 
+  kable("html", digits = 3) %>%
+  kable_styling("striped", position = "left")
+```
+
+## Sensitivity Analysis
+
+### Variance-covariance matrix with different levels of correlation
+Multiple repeatability estimates were measured on the same animals within a paper (cohort ID) which induces a correlation between sampling error variances [@noble_nonindependence_2017]. Thus, we constructed variance-covariance matrices to model shared sampling error for effect sizes from the same cohort. We initially assumed a 0.5 correlation, but also ran the phylogenetic meta-analytic model with a 0.25 and 0.75 correlation. All three correlations yielded qualitatively similar results, thus throughout the manuscript we assume a 0.5 correlation, but the results for the other correlation values are presented below. 
+
+#### Table S11
+Overall effects (meta-analytic means) and 95% confidence intervals (CIs) in *Zr* and heterogeneity, *I*^2^, for the phylogenetic multilevel intercept-only meta-analysis model when testing different levels of correlation (r = 0.25, 0.50, and 0.75) between sampling variances from the same cohort of birds.
+
+```{r VCV-cor}
+# Create a variance-covariance matrix at the cohort level with different correlation values
+VCV_25 <- impute_covariance_matrix(vi = df$VZr, cluster = df$cohort_ID, r = 0.25)
+VCV_75 <- impute_covariance_matrix(vi = df$VZr, cluster = df$cohort_ID, r = 0.75)
+
+# Run phylogenetic meta-analytic models with 0.25 and 0.75 VCV
+ma_model2_VCV25 <- rma.mv(yi = Zr2, V = VCV_25, 
+                      random = list(~1 | es_ID, 
+                                    ~1 | paper_ID, 
+                                    ~1 | cohort_ID, 
+                                    ~1 | species_ID, # non-phylo effect
+                                    ~1 | phylogeny), # phylo effect
+                      R = list(phylogeny = varcor), # phylogenetic relatedness
+                      data = df)
+
+i2_ma2_VCV25 <- round(i2_ml(ma_model2_VCV25)*100,1)
+
+ma_model2_VCV75 <- rma.mv(yi = Zr2, V = VCV_75, 
+                      random = list(~1 | es_ID, 
+                                    ~1 | paper_ID, 
+                                    ~1 | cohort_ID, 
+                                    ~1 | species_ID, # non-phylo effect
+                                    ~1 | phylogeny), # phylo effect
+                      R = list(phylogeny = varcor), # phylogenetic relatedness
+                      data = df)
+
+i2_ma2_VCV75 <- round(i2_ml(ma_model2_VCV75)*100,1)
+
+# creating a table
+tibble(
+  Model = c("Meta-analysis, r=0.25", "Meta-analysis, r=0.50", "Meta-analysis, r=0.75"),
+  `Overall mean` = c(ma_model2_VCV25$b, ma_model2$b, ma_model2_VCV75$b),
+  `Lower CI [0.025]` = c(ma_model2_VCV25$ci.lb, ma_model2$ci.lb, ma_model2_VCV75$ci.lb),
+  `Upper CI [0.975]` = c(ma_model2_VCV25$ci.ub, ma_model2$ci.ub, ma_model2_VCV75$ci.ub),
+  `I^2^~total~` = c(i2_ma2_VCV25[1], i2_ma2[1], i2_ma2_VCV75[1]),
+  `I^2^~es~` = c(i2_ma2_VCV25[2], i2_ma2[2], i2_ma2_VCV75[2]),
+  `I^2^~paper~` = c(i2_ma2_VCV25[3], i2_ma2[3], i2_ma2_VCV75[3]),
+  `I^2^~cohort~` = c(i2_ma2_VCV25[4], i2_ma2[4], i2_ma2_VCV75[4]),
+  `I^2^~species~` = c(i2_ma2_VCV25[5], i2_ma2[5], i2_ma2_VCV75[5]),
+  `I^2^~phylo~` = c(i2_ma2_VCV25[6], i2_ma2[6], i2_ma2_VCV75[6]),) %>% 
+  kable("html",  digits = 3) %>%
+  kable_styling("striped", position = "left")
+
+```
+
+### Inclusion of negative repeatabiliy estimates
+Correlation- and ANOVA-based repeatabilities can produce negative values, often reflecting noise around a statistical zero [@nakagawa_repeatability_2010]. For our main analyses, we set these negative estimates to zero, however here, we re-ran all the meta-analytic and meta-regression models with these negative values included.
+
+#### Table S12
+Overall effects (meta-analytic means) and 95% confidence intervals (CIs) both in *Zr* and back-transformed to *ICC*, and heterogeneity, *I*^2^, for the multilevel intercept-only meta-analysis models including and excluding phylogeny when negative repeatability values are included.
+
+```{r meta-analytic-mods-neg}
+
+ma_model1_neg <- rma.mv(yi = Zr, V = VCV,
+                    random = list(~1 | es_ID, 
+                                  ~1 | paper_ID, 
+                                  ~1 | cohort_ID, 
+                                  ~1 | species_ID), 
+                    data = df)
+
+ma_model2_neg <- rma.mv(yi = Zr, V = VCV, 
+                    random = list(~1 | es_ID, 
+                                  ~1 | paper_ID, 
+                                  ~1 | cohort_ID, 
+                                  ~1 | species_ID, # non-phylo effect
+                                  ~1 | phylogeny), # phylo effect
+                    R = list(phylogeny = varcor), # phylogenetic relatedness
+                    data = df)
+
+## # estimating I2 as measure of heterogeneity
+i2_ma1_neg <- round(i2_ml(ma_model1_neg)*100,1)
+i2_ma2_neg <- round(i2_ml(ma_model2_neg)*100,1)
+
+# Back-transform to ICC
+ma1_neg <- mod_results(ma_model1_neg, mod="Int")
+ma1_mod_table_neg <- ma1_neg$mod_table
+
+ma2_neg <- mod_results(ma_model2_neg, mod="Int")
+ma2_mod_table_neg <- ma2_neg$mod_table
+
+# need to calculate k for whole data set to use in formula
+
+k_all <- mean(df$k)
+
+for(i in names(ma1_mod_table_neg)[2:6]){
+  
+  ma1_mod_table_neg[i] <- Zr_to_ICC(ma1_mod_table_neg[i], k_all)
+  
+}
+
+for(i in names(ma2_mod_table_neg)[2:6]){
+  
+  ma2_mod_table_neg[i] <- Zr_to_ICC(ma2_mod_table_neg[i], k_all)
+  
+}
+
+# creating a table
+tibble(
+  Model = c("Meta-analysis (Zr)", "Meta-analysis (ICC)", "Meta-analysis phylo (Zr)", "Meta-analysis phylo (ICC)"),
+  `Overall mean` = c(ma_model1_neg$b, ma1_mod_table_neg$estimate, ma_model2_neg$b, ma2_mod_table_neg$estimate),
+  `Lower CI [0.025]` = c(ma_model1_neg$ci.lb, ma1_mod_table_neg$lowerCL, ma_model2_neg$ci.lb, ma2_mod_table_neg$lowerCL),
+  `Upper CI [0.975]` = c(ma_model1_neg$ci.ub, ma1_mod_table_neg$upperCL, ma_model2_neg$ci.ub, ma2_mod_table_neg$upperCL),
+  `I^2^~total~` = c(i2_ma1_neg[1], NA, i2_ma2_neg[1], NA),
+  `I^2^~es~` = c(i2_ma1_neg[2], NA, i2_ma2_neg[2], NA),
+  `I^2^~paper~` = c(i2_ma1_neg[3], NA, i2_ma2_neg[3], NA),
+  `I^2^~cohort~` = c(i2_ma1_neg[4], NA, i2_ma2_neg[4], NA),
+  `I^2^~species~` = c(i2_ma1_neg[5], NA, i2_ma2_neg[5], NA),
+  `I^2^~phylo~` = c(NA, NA, i2_ma2_neg[6], NA),) %>% 
+  kable("html",  digits = 3) %>%
+  kable_styling("striped", position = "left")
+```
+
+```{r meta-regression-annual-event-neg}
+# meta-regression: mutiple intercepts
+meta_regression1_neg <- rma.mv(yi = Zr, V = VCV, 
+                           mods = ~ annual_event,
+                           random = list(~1 | es_ID, 
+                                         ~1 | paper_ID, 
+                                         ~1 | cohort_ID, 
+                                         ~1 | species_ID, 
+                                         ~1 | phylogeny),
+                           R = list(phylogeny = varcor), # added in phylogney
+                           data = df)
+
+meta_regression1b_neg <- rma.mv(yi = Zr, V = VCV, 
+                            mods = ~ relevel(annual_event, ref = "Depart_breed"),
+                            random = list(~1 | es_ID, 
+                                          ~1 | paper_ID, 
+                                          ~1 | cohort_ID, 
+                                          ~1 | species_ID, 
+                                          ~1 | phylogeny),
+                            R = list(phylogeny = varcor), # added in phylogney
+                            data = df)
+
+
+meta_regression1c_neg <- rma.mv(yi = Zr, V = VCV, 
+                            mods = ~ relevel(annual_event, ref = "Nonbreed_depart"),
+                            random = list(~1 | es_ID, 
+                                          ~1 | paper_ID, 
+                                          ~1 | cohort_ID, 
+                                          ~1 | species_ID, 
+                                          ~1 | phylogeny),
+                            R = list(phylogeny = varcor), # added in phylogney
+                            data = df)
+
+# meta-regression: contrast (for orchard plot)
+meta_regression1d_neg <- rma.mv(yi = Zr, V = VCV, 
+                            mods = ~ annual_event -1,
+                            random = list(~1 | es_ID, 
+                                          ~1 | paper_ID, 
+                                          ~1 | cohort_ID, 
+                                          ~1 | species_ID, 
+                                          ~1 | phylogeny),
+                            R = list(phylogeny = varcor), # added in phylogney
+                            data = df)
+```
+
+#### Table S13
+Regression coefficients (Estimate) and 95% confidence intervals (CIs) both in Zr and back-transformed to ICC from the meta-regression with `annual_event` when negative repeatability values are included. Note that `mu` means the group mean while `beta` represents the contrast between two groups in the Unit column. *R<sup>2</sup><sub>marginal</sub>* = `r round(orchaRd::r2_ml(meta_regression1_neg)[[1]]*100,1)`%.
+
+```{r annual-event-table-neg}
+
+# getting marginal R2
+r2_meta_regression1_neg <- r2_ml(meta_regression1_neg)
+
+# getting estimates
+# including back-transformation to ICC
+
+mr1_neg <- mod_results(meta_regression1d_neg, mod="annual_event")
+mr1_mod_table_neg <- mr1_neg$mod_table
+
+mr1_data_neg <- mr1_neg$data
+
+# calculate k for each method separately
+
+# df %>% group_by(annual_event) %>% summarise(mean(k))
+
+mr1_data_neg <- mr1_data_neg %>% mutate(k = case_when(moderator == "Arrival_breed" ~ 2.55, 
+                                              moderator == "Depart_breed" ~ 2.45,
+                                              moderator == "Nonbreed_arrival" ~ 3.20,
+                                              moderator == "Nonbreed_depart" ~ 2.94))
+
+mr1_data_neg$yi_ICC <- Zr_to_ICC(mr1_data_neg$yi, mr1_data_neg$k)
+
+mr1_mod_table_neg$k <- c(2.55, 2.45, 3.20, 2.94)
+
+for(i in names(mr1_mod_table_neg)[2:6]){
+  
+  mr1_mod_table_neg[i] <- Zr_to_ICC(mr1_mod_table_neg[i], mr1_mod_table_neg$k)
+  
+}
+
+# creating a table
+tibble(
+  `Fixed effect` = c(rep(as.character(mr1_mod_table_neg$name),2), cont_gen(mr1_mod_table_neg$name)),
+  `Unit` = c(rep(c("Zr (mu)", "ICC (mu)"),each = 4), rep("Zr (beta)", 6)),
+  `Estimate` = c(meta_regression1d_neg$b, mr1_mod_table_neg$estimate, 
+                 meta_regression1_neg$b[-1], meta_regression1b_neg$b[-(1:2)], meta_regression1c_neg$b[-(1:3)]),
+  `Lower CI [0.025]` = c(meta_regression1d_neg$ci.lb, mr1_mod_table_neg$lowerCL,
+                         meta_regression1_neg$ci.lb[-1], meta_regression1b_neg$ci.lb[-(1:2)], meta_regression1c_neg$ci.lb[-(1:3)]),
+  `Upper CI  [0.975]` = c(meta_regression1d_neg$ci.ub, mr1_mod_table_neg$upperCL,
+                         meta_regression1_neg$ci.ub[-1], meta_regression1b_neg$ci.ub[-(1:2)], meta_regression1c_neg$ci.ub[-(1:3)])) -> t_annual_event_neg
+ # `R2` = c(r2_meta_regression1[1], rep(NA,13))) -> 
+
+t_annual_event_neg %>% kable("html", digits = 3) %>%
+  kable_styling("striped", position = "left")
+               
+```
+
+```{r meta-regression-method-neg}
+meta_regression2_neg <- rma.mv(yi = Zr, V = VCV, 
+                      mods = ~ method,
+                      random = list(~1 | es_ID, 
+                                    ~1 | paper_ID, 
+                                    ~1 | cohort_ID, 
+                                    ~1 | species_ID, 
+                                    ~1 | phylogeny),
+                      R = list(phylogeny = varcor),
+                      data = df)
+
+# reordering
+# df$method <- factor(df$method, levels = c("Conventional", "GLS", "Satellite"))
+
+meta_regression2b_neg <- rma.mv(yi = Zr, V = VCV, 
+                            mods = ~ relevel(method, ref = "GLS"),
+                            random = list(~1 | es_ID, 
+                                          ~1 | paper_ID, 
+                                          ~1 | cohort_ID, 
+                                          ~1 | species_ID, 
+                                          ~1 | phylogeny),
+                            R = list(phylogeny = varcor),
+                            data = df)
+
+# Orchard plot - need meta-regression without intercept
+meta_regression2c_neg <- rma.mv(yi = Zr, V = VCV, 
+                            mods = ~ method -1,
+                            random = list(~1 | es_ID, 
+                                          ~1 | paper_ID, 
+                                          ~1 | cohort_ID, 
+                                          ~1 | species_ID, 
+                                          ~1 | phylogeny),
+                            R = list(phylogeny = varcor),
+                            data = df)
+```
+
+#### Table S14
+Regression coefficients (Estimate) and 95% confidence intervals (CIs) both in Zr and back-transformed to ICC from the meta-regression with `method` when negative repeatability values are included. Note that `mu` means the group mean while `beta` represents the contrast between two groups in the Unit column. *R<sup>2</sup><sub>marginal</sub>* = `r round(orchaRd::r2_ml(meta_regression2_neg)[[1]]*100,1)`%.
+
+```{r method-table-neg}
+# getting marginal R2
+r2_meta_regression2_neg <- r2_ml(meta_regression2_neg)
+
+# getting estimates
+# including back-transformation to ICC
+
+mr2_neg <- mod_results(meta_regression2c_neg, mod="method")
+mr2_mod_table_neg <- mr2_neg$mod_table
+
+mr2_data_neg <- mr2_neg$data
+
+# calculate k for each method separately
+
+#df %>% group_by(method) %>% summarise(mean(k))
+
+
+mr2_data_neg <- mr2_data_neg %>% mutate(k = case_when(moderator == "GLS" ~ 2.20, 
+                                              moderator == "Conventional" ~ 3.13,
+                                              moderator == "Satellite" ~ 3.28))
+
+mr2_data_neg$yi_ICC <- Zr_to_ICC(mr2_data_neg$yi, mr2_data_neg$k)
+
+mr2_mod_table_neg$k <- c(3.13, 2.20, 3.28)
+
+for(i in names(mr2_mod_table_neg)[2:6]){
+  
+  mr2_mod_table_neg[i] <- Zr_to_ICC(mr2_mod_table_neg[i], mr2_mod_table_neg$k)
+  
+}
+
+# creating a table
+tibble(
+  `Fixed effect` = c(rep(as.character(mr2_mod_table_neg$name),2), cont_gen(mr2_mod_table_neg$name)),
+  `Unit` = c(rep(c("Zr (mu)", "ICC (mu)"),each = 3), rep("Zr (beta)", 3)),
+  `Estimate` = c(meta_regression2c_neg$b, mr2_mod_table_neg$estimate, 
+                 meta_regression2_neg$b[-1], meta_regression2b_neg$b[-(1:2)]),
+  `Lower CI [0.025]` = c(meta_regression2c_neg$ci.lb, mr2_mod_table_neg$lowerCL,
+                         meta_regression2_neg$ci.lb[-1], meta_regression2b_neg$ci.lb[-(1:2)]),
+  `Upper CI  [0.975]` = c(meta_regression2c_neg$ci.ub, mr2_mod_table_neg$upperCL,
+                         meta_regression2_neg$ci.ub[-1], meta_regression2b_neg$ci.ub[-(1:2)])) -> t_method_neg
+
+t_method_neg %>% kable("html", digits = 3) %>%
+  kable_styling("striped", position = "left") 
+```
+
+```{r meta-regression-sex-neg}
+# reordering
+#df$sex <- factor(df$sex, levels = c("F", "M", "B"))
+
+meta_regression4_neg <- rma.mv(yi = Zr, V = VCV, 
+                           mods = ~ sex,
+                           random = list(~1 | es_ID, 
+                                         ~1 | paper_ID, 
+                                         ~1 | cohort_ID, 
+                                         ~1 | species_ID, 
+                                         ~1 | phylogeny),
+                           R = list(phylogeny = varcor),
+                           data = df)
+
+meta_regression4b_neg <- rma.mv(yi = Zr, V = VCV, 
+                            mods = ~ relevel(sex, ref = "M"),
+                            random = list(~1 | es_ID, 
+                                          ~1 | paper_ID, 
+                                          ~1 | cohort_ID, 
+                                          ~1 | species_ID, 
+                                          ~1 | phylogeny),
+                            R = list(phylogeny = varcor), 
+                            data = df)
+
+# Orchard plot - need meta-regression without intercept
+meta_regression4c_neg <- rma.mv(yi = Zr, V = VCV, 
+                            mods = ~ sex -1,
+                            random = list(~1 | es_ID, 
+                                          ~1 | paper_ID, 
+                                          ~1 | cohort_ID, 
+                                          ~1 | species_ID, 
+                                          ~1 | phylogeny),
+                            R = list(phylogeny = varcor),
+                            data = df)
+```
+
+#### Table S15
+Regression coefficients (Estimate) and 95% confidence intervals (CIs) both in Zr and back-transformed to ICC from the meta-regression with `sex` when negative repeatability values are included. Note that `mu` means the group mean while `beta` represents the contrast between two groups in the Unit column. *R<sup>2</sup><sub>marginal</sub>* = `r round(orchaRd::r2_ml(meta_regression4_neg)[[1]]*100,1)`%. B = both sexes, M = male, and F = female.
+
+```{r sex-table-neg}
+
+# getting marginal R2
+r2_meta_regression4_neg <- r2_ml(meta_regression4_neg)
+
+# getting estimates
+# including back-transformation to ICC
+
+mr4_neg <- mod_results(meta_regression4c_neg, mod="sex")
+mr4_mod_table_neg <- mr4_neg$mod_table
+
+mr4_data_neg <- mr4_neg$data
+
+# calculate k for each method separately
+
+#df %>% group_by(sex) %>% summarise(mean(k))
+
+
+mr4_data_neg <- mr4_data_neg %>% mutate(k = case_when(moderator == "F" ~ 2.37, 
+                                              moderator == "M" ~ 2.38,
+                                              moderator == "B" ~ 2.82))
+
+mr4_data_neg$yi_ICC <- Zr_to_ICC(mr4_data_neg$yi, mr4_data_neg$k)
+
+mr4_mod_table_neg$k <- c(2.37, 2.38, 2.82)
+
+for(i in names(mr4_mod_table_neg)[2:6]){
+  
+  mr4_mod_table_neg[i] <- Zr_to_ICC(mr4_mod_table_neg[i], mr4_mod_table_neg$k)
+  
+}
+
+# creating a table
+tibble(
+  `Fixed effect` = c(rep(as.character(mr4_mod_table_neg$name),2), cont_gen(mr4_mod_table_neg$name)),
+  `Unit` = c(rep(c("Zr (mu)", "ICC (mu)"),each = 3), rep("Zr (beta)", 3)),
+  `Estimate` = c(meta_regression4c_neg$b, mr4_mod_table_neg$estimate, 
+                 meta_regression4_neg$b[-1], meta_regression4b_neg$b[-(1:2)]),
+  `Lower CI [0.025]` = c(meta_regression4c_neg$ci.lb, mr4_mod_table_neg$lowerCL,
+                         meta_regression4_neg$ci.lb[-1], meta_regression4b_neg$ci.lb[-(1:2)]),
+  `Upper CI  [0.975]` = c(meta_regression4c_neg$ci.ub, mr4_mod_table_neg$upperCL,
+                         meta_regression4_neg$ci.ub[-1], meta_regression4b_neg$ci.ub[-(1:2)])) -> t_sex_neg
+
+t_sex_neg %>% kable("html", digits = 3) %>%
+  kable_styling("striped", position = "left")
+
+```
+
+```{r meta-regression-taxa-neg}
+meta_regression3_neg <- rma.mv(yi = Zr, V = VCV, 
+                           mods = ~ taxa,
+                           random = list(~1 | es_ID, 
+                                         ~1 | paper_ID, 
+                                         ~1 | cohort_ID, 
+                                         ~1 | species_ID, 
+                                         ~1 | phylogeny),
+                           R = list(phylogeny = varcor), 
+                           data = df)
+
+# reordering
+#df$taxa <- factor(df$taxa, levels = c("Waterbird", "Seabird", "Landbird"))
+
+meta_regression3b_neg <- rma.mv(yi = Zr, V = VCV, 
+                           mods = ~ relevel(taxa, ref = "Waterbird"),
+                           random = list(~1 | es_ID, 
+                                         ~1 | paper_ID, 
+                                         ~1 | cohort_ID, 
+                                         ~1 | species_ID, 
+                                         ~1 | phylogeny),
+                           R = list(phylogeny = varcor), 
+                           data = df)
+
+# Orchard plot - need meta-regression without intercept
+meta_regression3c_neg <- rma.mv(yi = Zr, V = VCV, 
+                            mods = ~ taxa -1,
+                            random = list(~1 | es_ID, 
+                                          ~1 | paper_ID, 
+                                          ~1 | cohort_ID, 
+                                          ~1 | species_ID, 
+                                          ~1 | phylogeny),
+                            R = list(phylogeny = varcor),
+                            data = df)
+```
+
+#### Table S16
+Regression coefficients (Estimate) and 95% confidence intervals (CIs) both in Zr and back-transformed to ICC from the meta-regression with `taxa` when negative repeatability values are included. Note that `mu` means the group mean while `beta` represents the contrast between two groups in the Unit column. *R<sup>2</sup><sub>marginal</sub>* = `r round(orchaRd::r2_ml(meta_regression3_neg)[[1]]*100,1)`%.
+
+```{r taxa-table-neg}
+
+# getting marginal R2
+r2_meta_regression3_neg <- r2_ml(meta_regression3_neg)
+
+# getting estimates
+# including back-transformation to ICC
+
+mr3_neg <- mod_results(meta_regression3c_neg, mod="taxa")
+mr3_mod_table_neg <- mr3_neg$mod_table
+
+mr3_data_neg <- mr3_neg$data
+
+# calculate k for each method separately
+
+#df %>% group_by(taxa) %>% summarise(mean(k))
+
+mr3_data_neg <- mr3_data_neg %>% mutate(k = case_when(moderator == "Landbird" ~ 2.68, 
+                                              moderator == "Seabird" ~ 2.38,
+                                              moderator == "Waterbird" ~ 3.08))
+
+mr3_data_neg$yi_ICC <- Zr_to_ICC(mr3_data_neg$yi, mr3_data_neg$k)
+
+mr3_mod_table_neg$k <- c(2.68, 2.38, 3.08)
+
+for(i in names(mr3_mod_table_neg)[2:6]){
+  
+  mr3_mod_table_neg[i] <- Zr_to_ICC(mr3_mod_table_neg[i], mr3_mod_table_neg$k)
+  
+}
+
+# creating a table
+tibble(
+  `Fixed effect` = c(rep(as.character(mr3_mod_table_neg$name),2), cont_gen(mr3_mod_table_neg$name)),
+  `Unit` = c(rep(c("Zr (mu)", "ICC (mu)"),each = 3), rep("Zr (beta)", 3)),
+  `Estimate` = c(meta_regression3c_neg$b, mr3_mod_table_neg$estimate, 
+                 meta_regression3_neg$b[-1], meta_regression3b_neg$b[-(1:2)]),
+  `Lower CI [0.025]` = c(meta_regression3c_neg$ci.lb, mr3_mod_table_neg$lowerCL,
+                         meta_regression3_neg$ci.lb[-1], meta_regression3b_neg$ci.lb[-(1:2)]),
+  `Upper CI  [0.975]` = c(meta_regression3c_neg$ci.ub, mr3_mod_table_neg$upperCL,
+                         meta_regression3_neg$ci.ub[-1], meta_regression3b_neg$ci.ub[-(1:2)])) -> t_method_neg
+
+t_method_neg %>% kable("html", digits = 3) %>%
+  kable_styling("striped", position = "left") 
+
+```
+
+```{r meta-regression-k-neg}
+
+meta_regression5_neg <- rma.mv(yi = Zr, V = VCV, 
+                            mods = ~ k,
+                            random = list(~1 | es_ID, 
+                                          ~1 | paper_ID, 
+                                          ~1 | cohort_ID, 
+                                          ~1 | species_ID, 
+                                          ~1 | phylogeny),
+                            R = list(phylogeny = varcor),
+                            data = df)
+```
+
+#### Table S17
+Regression coefficients (Estimate) and 95% confidence intervals (CIs) in Zr from the meta-regression with `k` (number of observations per individual) when negative repeatability values are included. *R<sup>2</sup><sub>marginal</sub>* = `r round(orchaRd::r2_ml(meta_regression5_neg)[[1]]*100,1)`%.
+
+```{r k-table-neg}
+# getting marginal R2
+r2_meta_regression5_neg <- r2_ml(meta_regression5_neg)
+
+# creating a table
+tibble(
+  `Fixed effect` = c("Intercept", "k"),
+  `Estimate` = c(meta_regression5_neg$b),
+  `Lower CI [0.025]` = c(meta_regression5_neg$ci.lb),
+  `Upper CI  [0.975]` = c(meta_regression5_neg$ci.ub)) -> t_k_neg
+
+t_k_neg %>% kable("html", digits = 3) %>%
+  kable_styling("striped", position = "left") 
+
+```
+
+```{r meta-regression-outlier-k-neg}
+VCV2 <- impute_covariance_matrix(vi = df2$VZr, cluster = df2$cohort_ID, r = 0.5)
+
+meta_regression6_neg <- rma.mv(yi = Zr, V = VCV2, 
+                           mods = ~ k,
+                           random = list(~1 | es_ID, 
+                                         ~1 | paper_ID, 
+                                         ~1 | cohort_ID, 
+                                         ~1 | species_ID, 
+                                         ~1 | phylogeny),
+                           R = list(phylogeny = varcor), # added in phylogney
+                           data = df2)
+```
+
+### Model selection with negative repeatability estimates included
+
+Here we used the `MuMin` package to generate all possible moderator combinations (using all five variables: `annual_event`, `method`, `sex`, `taxa` & `k` (number of observations per individuals)), determine the importance of the moderators, and generate model-averaged estimates when the negative repeatability estimates are included.
+
+```{r model-selection-neg}
+eval(metafor:::.MuMIn)
+
+full_model_MuMIn_neg <- rma.mv(yi = Zr, V = VCV, 
+                          mods = ~ method + 
+                            taxa + 
+                            sex + 
+                            annual_event +
+                            k, 
+                          random = list(~1 | es_ID, 
+                                        ~1 | paper_ID, 
+                                        ~1 | cohort_ID, 
+                                        ~1 | species_ID, 
+                                        ~1 | phylogeny),
+                          R = list(phylogeny = varcor), 
+                          method = "ML", # maximum likelihood for model selection
+                          data = df)
+
+# vif.rma(full_model_MuMIn)  # No major problems of collinearity (VIF <4)
+
+candidate_models_neg <-dredge(full_model_MuMIn_neg) # Generate all possible combinations of moderators
+
+candidates_aic2_neg <- subset(candidate_models_neg, delta<=2) # Display all models within 2 values of AICc
+
+importance_neg <- sw(model.avg(candidate_models_neg, subset=delta<=2))# relative importance (sum of weights) of the moderators
+
+mod.avg_neg <- summary(model.avg(candidate_models_neg, subset=delta<=2)) # Generate model-averaged estimates 
+
+confidence_neg <- confint(mod.avg_neg, full=TRUE) # Generate confidence intervals for the estimates averaged using full-averages procedures
+
+```
+
+#### Table S18
+The top six models (when negative repeatability values are included) within the $\Delta$AIC difference of 2, and which five variables: `annual_event`, `method`, `taxa`, `sex`, & `k` were included (indicated by $+$); model weights and the sum of weights for each of the variables are included. 
+
+```{r model-selection-table-neg}
+# creating a table
+tibble(
+  `Model (variable weight)` = c("Model1", "Model2", "Model3", "Model4", "Model5", "Model6", "(Sum of weights)"),
+  annual_event = c(if_else(candidates_aic2_neg$annual_event == "+", "$+$", "NA"),round(importance_neg[1],3) ),
+  sex = c(if_else(candidates_aic2_neg$sex== "+", "$+$", "NA"),round(importance_neg[2], 3)) ,
+  taxa =  c(if_else(candidates_aic2_neg$taxa== "+", "$+$", "NA"),round(importance_neg[3], 3)),
+  `method` = c(if_else(candidates_aic2_neg$method== "+", "$+$", "NA"),round(importance_neg[4], 3)),
+  k = c(if_else(candidates_aic2_neg$k <= 0, "$+$", "NA"),round(importance_neg[5], 3)),
+  delta_AICc = c(candidates_aic2_neg$delta, NA),
+  Weight = c(candidates_aic2_neg$weight, NA)) %>% 
+  kable("html", digits = 3) %>%
+  kable_styling("striped", position = "left")
+```
+
+#### Model averaging
+
+#### Table S19
+The average estimates for regression coefficients (Estimate) and 95% confidence intervals (CIs) from the model averaging procedure when negative repeatability values are included using full-averages (assuming zero values for moderators when they do not occur).
+```{r model-averaging-neg}
+# creating a table
+tibble(
+  `Fixed effect` = c("Intercept",
+                     "Depart_breed", "Nonbreed_arrival", "Nonbreed_depart", 
+                     "Seabird", "Waterbird", "GLS", "Satellite",
+                     "k","Female","Male"),
+  Estimate = mod.avg_neg$coefmat.full[,1],
+  `Lower CI [0.025]` = confidence_neg[,1],
+  `Upper CI  [0.975]` =  confidence_neg[,2]) %>% 
+  kable("html", digits = 3) %>%
+  kable_styling("striped", position = "left")
+```
+
+## Publication Bias Analysis
+
+We followed a recently proposed method by @nakagawa_methods_2021, which involved conducting 3 publication bias models: 1) Meta-regression with SE (uni-moderator), 2) meta-regression with year of publication (uni-moderator), and 3) all-in publication bias test (multi-moderator). We ran these publication bias models using the dataset that had negative repeatability values set to zero.
+
+### Meta-regression with SE (uni-moderator)
+
+To test for publication bias, we first fit a phylogenetic multilevel meta-regression to explore whether there is some evidence of small-study effects in our meta-analytic dataset. To do so, we fit a uni-moderator phylogenetic multilevel meta-regression including the effect sizes’ standard errors (sei) as the only moderator.
+
+```{r small-study-model}
+# creating a variable for the standard error of each effect size (i.e. the square root of the sampling variance)
+df$sei <- sqrt(df$VZr)
+
+# Application of Equation 21 from the main text in Nakagawa et al. 2021
+publication.bias.model.r.se <- rma.mv(yi = Zr2, V = VCV,
+                                      mod = ~1 + sei,
+                                      random = list(~1 | es_ID, 
+                                                    ~1 | paper_ID, 
+                                                    ~1 | cohort_ID, 
+                                                    ~1 | species_ID, 
+                                                    ~1 | phylogeny),
+                                      R = list(phylogeny = varcor), # added in phylogney
+                                      data=df)
+
+# print(publication.bias.model.r.se,digits=3)
+
+```
+
+#### Table S20
+Regression coefficients (Estimate) and 95% confidence intervals (CIs) from the univariate meta-regression fitted with `sei`.
+
+```{r small-study-table}
+
+# creating a table
+t_sei <- tibble(
+  `Fixed effect` = c("Intercept", "sei"),
+  `Estimate` = c(publication.bias.model.r.se$b),
+  `Lower CI [0.025]` = c(publication.bias.model.r.se$ci.lb),
+  `Upper CI  [0.975]` = c(publication.bias.model.r.se$ci.ub))
+#  `R2` = c(orchaRd::r2_ml(publication.bias.model.r.se)[[1]], rep(NA,1)))
+
+t_sei %>% kable("html", digits = 3) %>%
+  kable_styling("striped", position = "left") 
+
+```
+
+According to this uni-moderator meta-regression, there is no evidence of small-study effects since the slope of the moderator ‘sei’ is not statistically significant (slope = `r round(publication.bias.model.r.se$b[2,1],3)`, 95% CI = [`r round(publication.bias.model.r.se$ci.lb[2],3)`, `r round(publication.bias.model.r.se$ci.ub[2],3)`]; *R<sup>2</sup><sub>marginal</sub>* = `r round(orchaRd::r2_ml(publication.bias.model.r.se)[[1]]*100,1)`%), showing that effect sizes with larger SE (more uncertain effect sizes) do not tend to be larger. But we will confirm this after accounting for some of the heterogeneity present in the data using the all-in publication bias test (multi-moderator meta-regression).
+
+### Meta-regression with year of publication (uni-moderator)
+
+To test for time-lag bias (also called decline effects) we can first fit a uni-moderator phylogenetic multilevel meta-regression including the year of publication (mean-centred) as the only moderator.
+
+```{r publication-year-model}
+
+df$pub_year.c <- as.vector(scale(df$pub_year, scale = F))
+
+# Application of Equation 23 from the main text in Nakagawa et al. 2021
+publication.bias.model.r.timelag <- rma.mv(yi = Zr2, V = VCV,
+                                           mods= ~1 + pub_year.c,
+                                           random = list(~1 | es_ID, 
+                                                         ~1 | paper_ID, 
+                                                         ~1 | cohort_ID, 
+                                                         ~1 | species_ID, 
+                                                         ~1 | phylogeny),
+                                           R = list(phylogeny = varcor), # added in phylogney
+                                           data=df)
+
+```
+
+#### Table S21
+Regression coefficients (Estimate) and 95% confidence intervals (CIs) from the univariate meta-regression fitted with publication year.
+
+```{r publication-year-table}
+
+# creating a table
+t_pub_year <- tibble(
+  `Fixed effect` = c("Intercept", "pub_year.c"),
+  `Estimate` = c(publication.bias.model.r.timelag$b),
+  `Lower CI [0.025]` = c(publication.bias.model.r.timelag$ci.lb),
+  `Upper CI  [0.975]` = c(publication.bias.model.r.timelag$ci.ub))
+#  `R2` = c(orchaRd::r2_ml(publication.bias.model.r.timelag)[[1]], rep(NA,1)))
+
+t_pub_year %>% kable("html", digits = 3) %>%
+  kable_styling("striped", position = "left") 
+
+```
+
+According to this uni-moderator meta-regression, there is no decline effects since the slope of the moderator ‘year of publication’ is essentially zero (slope = `r round(publication.bias.model.r.timelag$b[2,1],3)`, 95% CI = [`r round(publication.bias.model.r.timelag$ci.lb[2],3)`, `r round(publication.bias.model.r.timelag$ci.ub[2],3)`]; *R<sup>2</sup><sub>marginal</sub>* = `r round(orchaRd::r2_ml(publication.bias.model.r.timelag)[[1]]*100,1)`%), showing that effect sizes have not changed linearly over time since the first effect size was published. But again, we need to confirm this pattern after accounting for some of the heterogeneity present in the data using the all-in publication bias test.
+
+
+### All-in publication bias test (multi-moderator)
+
+When heterogeneity exists (which is normally the case in ecology and evolution; Senior et al. 2016), it is best to combine the above two models with other moderators since those additional moderators will generally be expected to explain some of the heterogeneity. That is, this all-in publication bias test (multi-moderator meta-regression) would be the best test of small-study (publication bias) and decline effects (time-lag bias) in most meta-analytic datasets [see @nakagawa_methods_2021]. For our data, we will run a multi-moderator phylogenetic multilevel meta-regression including the effect sizes’ standard errors, the year of publication (mean-centred) and the 5 moderators included in previous models.
+
+```{r all-in-publication-model}
+
+publication.bias.model.r.all.se <- rma.mv(yi = Zr2, V = VCV,
+                                         mods= ~1 + # -1 removes the intercept
+                                           sei +
+                                           pub_year.c +
+                                         annual_event + method + taxa + sex + k, 
+                                         random = list(~1 | es_ID, 
+                                                       ~1 | paper_ID, 
+                                                       ~1 | cohort_ID, 
+                                                       ~1 | species_ID, 
+                                                       ~1 | phylogeny),
+                                         R = list(phylogeny = varcor), # added in phylogney
+                                         data=df)
+
+```
+
+#### Table S22
+Regression coefficients (Estimate) and 95% confidence intervals (CIs) from the multivariate meta-regression with sei, publication year, and the five moderator variables. *R<sup>2</sup><sub>marginal</sub>* = `r round(orchaRd::r2_ml(publication.bias.model.r.all.se)[[1]]*100,1)`%.
+
+```{r all-in-publication-table}
+
+# creating a table
+t_all_in <- tibble(
+  `Fixed effect` = c("Intercept", "sei", "pub_year.c", "Depart_breed", "Nonbreed_arrival", "Nonbreed_depart", "GLS", "Satellite", "Seabird", "Waterbird", "Female", "Male", "k"),
+  `Estimate` = c(publication.bias.model.r.all.se$b),
+  `Lower CI [0.025]` = c(publication.bias.model.r.all.se$ci.lb),
+  `Upper CI  [0.975]` = c(publication.bias.model.r.all.se$ci.ub))
+ # `R2` = c(r2_publication.bias.model.r.all.se[1], rep(NA,12)))
+
+t_all_in %>% kable("html", digits = 3) %>%
+  kable_styling("striped", position = "left") 
+```
+
+The all-in publication bias test agrees with what we observed in the uni-moderator meta-regressions above. First, the multi-moderator meta-regression shows no significant slope for the moderator ‘sei’ (slope = `r round(publication.bias.model.r.all.se$b[2,1],3)`, 95% CI = [`r round(publication.bias.model.r.all.se$ci.lb[2],3)`,`r round(publication.bias.model.r.all.se$ci.ub[2],3)`]; Fig. S5), showing no evidence of small-study effects. In other words, the largest effect sizes in the dataset do not tend to be those with the lowest precision (i.e. larger uncertainty). Second, the all-in publication bias test also confirms that there is no evidence of decline effects in the data since the slope of the moderator ‘year of publication’ was again indistinguishable from zero (slope = `r round(publication.bias.model.r.all.se$b[3,1],3)`, 95% CI = [`r round(publication.bias.model.r.all.se$ci.lb[3],3)`,`r round(publication.bias.model.r.all.se$ci.ub[3],3)`]; Fig. S6).
+
+#### Figure S5
+
+```{r figureS5}
+
+predict.publication.bias.model.r.all.se.plot.1 <- predict(publication.bias.model.r.all.se,
+                                                          newmods=cbind(seq(min(df$sei),
+                                                                            max(df$sei),
+                                                                            0.005),
+                                                                        c(0), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0))
+
+newdat <- data.frame(sei=seq(min(df$sei),
+                             max(df$sei),
+                             0.005),
+                     fit=predict.publication.bias.model.r.all.se.plot.1$pred,
+                     upper=predict.publication.bias.model.r.all.se.plot.1$ci.ub,
+                     lower=predict.publication.bias.model.r.all.se.plot.1$ci.lb,
+                     stringsAsFactors=FALSE)
+
+ggplot(data = df, aes(x = sei, y = Zr2)) +
+  geom_point(shape = 21, fill = "grey85", colour="grey60", size=3, alpha=0.5) +
+  geom_hline(yintercept = 0,linetype = 2, colour = "black",alpha=0.5) +
+  geom_line(data=newdat, aes(x=sei, y=fit), size = 1.5, colour="darkorchid4") +
+  geom_ribbon(data=newdat, aes(ymin = lower, ymax = upper, y=0), alpha = .3, fill="darkorchid4") +
+  labs(x="Standard error (sei)", y="Effect size (Zr)") +
+  scale_y_continuous(limits=c(-1, 2.5), breaks = seq(-1, 2.2, by = 1)) +
+  theme_bw() +
+  theme(text = element_text(size = 9, colour = "black", hjust = 0.5),
+        panel.grid = element_blank())
+
+```
+  
+  **Figure S5.** A bubble plot showing that effect sizes with larger standard errors do not tend to be larger, providing no evidence of small-study effects in the meta-analytic dataset. The solid line represents the model estimate and the shading shows its 95% confidence intervals.
+
+#### Figure S6
+
+```{r figureS6}
+
+predict.publication.bias.model.r.all.se.plot.2 <- predict(publication.bias.model.r.all.se,
+                                                          newmods=cbind(mean(df$sei),
+                                                                        seq(min(df$pub_year.c),
+                                                                            max(df$pub_year.c),
+                                                                            0.25),0, 0,0,0,0,0,0,0,0,0))
+
+
+newdat2 <- data.frame(pub_year.c=seq(min(df$pub_year.c),
+                              max(df$pub_year.c),
+                              0.25),
+                     fit=predict.publication.bias.model.r.all.se.plot.2$pred,
+                     upper=predict.publication.bias.model.r.all.se.plot.2$ci.ub,
+                     lower=predict.publication.bias.model.r.all.se.plot.2$ci.lb,
+                     stringsAsFactors=FALSE)
+
+ggplot(data = df, aes(x = pub_year.c, y = Zr2)) +
+  geom_point(aes(size=(1/sqrt(VZr))), shape = 21, fill = "grey85", colour="grey60", alpha=0.5) +
+  geom_hline(yintercept = 0,linetype = 2, colour = "black",alpha=0.5) +
+  geom_line(data=newdat2, aes(x=pub_year.c, y=fit), size = 1.5, colour="darkorchid4") +
+  geom_ribbon(data=newdat2, aes(ymin = lower, ymax = upper, y=0), alpha = .3, fill="darkorchid4") +
+  labs(x="Year of publication", y="Effect size (Zr)", size = "Precison (1/SE)") +
+  scale_y_continuous(limits=c(-1, 2.5), breaks = seq(-1, 2.2, by = 1)) +
+  scale_x_continuous(breaks = c(-24.0862069, -14.0862069, -4.0862069, 5.9137931), label = c(1990,2000, 2010, 2020)) +
+  theme_bw() +
+  theme(text = element_text(size = 9, colour = "black", hjust = 0.5),
+        panel.grid = element_blank(),
+        legend.text=element_text(size=8),
+          legend.position=c(0,0), 
+          legend.justification = c(0,0),
+          legend.background = element_blank(), 
+          legend.direction="horizontal",
+          legend.title = element_text(size=8))
+
+```
+  
+  **Figure S6.** A bubble plot showing that the overall effect size has not changed over time, where the solid line represents the model estimate and the shading shows its 95% confidence intervals, with individual data points scaled by precision (1/SE).
+
+## Acknowledgements
+
+Many coding materials have been borrowed from these papers [@hayward_broadscale_2021; @pottier_sexual_2021].
+
+## R Session Information
+
+```{r echo=FALSE}
+# pander for making it look nicer
+sessionInfo() %>% pander()
+```
+
+
+## References
