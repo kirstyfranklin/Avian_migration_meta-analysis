@@ -6,30 +6,28 @@ cohort_ID,Unique ID for each cohort of birds…
 species_ID,Unique ID for each species
 species_common,Common name of species from paper
 species_latin,Latin name of species
-species_latin_hackett,Latin name of species to match names in Hackett tree (note: some not found)
 taxa,"Species split into waterbird, landbird or seabird based on Geen et al. 2019"
 sex,"Male, female, or both/unknown"
 n,Number of individuals
 k,Number of observations per individual
 est,"Method of calculating repeatability, correlation (r) or ICC"
 R,Repeatability value
-method,Tracking method
+fixed_yn,Any fixed effects (or additional random effects) included in repeatability calculation: yes or no
+fixed_var,"If yes, what additional variables are included"
+unstandardized_variance,Whether unstandardized variance components are reported
+method,"Tracking method: conventional (ringing, colour-ringing), geolocator (geolocation), or GPS (GPS, satellite, PTT)"
 annual_event,"Period of annual cycle which repeatability is measured (arrival to, or departure from, breeding or non-breeding grounds)"
-location,
-country,
+location,Location of tagging (as written by paper)
+continent,"Continent of tagging location: North America, Europe, or Other"
 long,Longitude of tagging location
 lat,Latitude of tagging location
 tag_period,Whether individuals were tagged on the breeding or non-breeding grounds
-fixed_yn,Any fixed effects (or additional random effects) included in repeatability calculation - yes or no
-fixed_var,"If yes, what additional variables are included"
-TE,Effect size (Fishers Z)
-seTE,Sampling variance
 notes,General comments
-data_location,where in the paper the data is location
-data_presentation,"text, figure or table"
-title,title of the paper
+data_location,Where in the paper the data is location
+data_presentation,"Text, figure or table"
+title,Title of the paper
 pub_year,Publication year of paper
-authors,authors of the paper
-journal,journal the paper was published in
+authors,Authors of the paper
+journal,Journal the paper was published in
 DOI,DOI of the paper
-fulltext_ID,"an ID that is used to link the paper for data extraction to the record of screened full texts, in the relational database"
+fulltext_ID,An ID that is used to link the paper for data extraction to the record of screened full texts
