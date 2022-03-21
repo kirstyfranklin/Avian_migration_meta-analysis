@@ -126,14 +126,14 @@ We followed reporting guidelines outlined in the PRISMA-EcoEvo checklist [@odea_
 ### PRISMA flow chart
 
 #### Figure S1
-![](C:/Users/rst18vzu/OneDrive - University of East Anglia/PhD/Lit. review/Meta-analysis/Avian_migration_meta-analysis/figs/PRISMA_flow_chart.PNG){width=80%}
+![](C:/Users/rst18vzu/OneDrive - University of East Anglia/PhD/Lit. review/Meta-analysis/Avian_migration_meta-analysis/figs/FigureS1.PNG){width=80%}
 
 **Figure S1.** PRISMA flow chart summarising search methods and screening for studies included in analyses, and reasons for excluding studies. 
 
 ### Decision tree
 
 #### Figure S2
-![](C:/Users/rst18vzu/OneDrive - University of East Anglia/PhD/Lit. review/Meta-analysis/Avian_migration_meta-analysis/figs/Decision_tree_abstract.PNG){width=60%}
+![](C:/Users/rst18vzu/OneDrive - University of East Anglia/PhD/Lit. review/Meta-analysis/Avian_migration_meta-analysis/figs/FigureS2.PNG){width=60%}
 
 **Figure S2.** Decision tree used to evaluate studies for inclusion and exclusion at the stage of title and abstract screening.
 
@@ -749,7 +749,7 @@ image_DNB <- readPNG(here("images/DNB_icon.png"))
 
 ```
 
-![](C:/Users/rst18vzu/OneDrive - University of East Anglia/PhD/Lit. review/Meta-analysis/Avian_migration_meta-analysis/figs/Fig2b_zero_for_Rmd.png){width=85%}
+![](C:/Users/rst18vzu/OneDrive - University of East Anglia/PhD/Lit. review/Meta-analysis/Avian_migration_meta-analysis/figs/Fig2b_Rmd.png){width=85%}
 
 **Figure 2b.** Repeatability of avian migration timing for annual migration events. The plot shows the group-wise means with 95% confidence intervals (thick lines) and 95% prediction intervals (thin lines), observed effect sizes (back-transformed to ICC) scaled by precision (circles) and k = number of effect sizes. Note this plot was edited in Affinity Designer after construction in R.
 
@@ -1199,7 +1199,7 @@ d <- ggplot(data = mr3_mod_table, aes(x = estimate, y = name)) +
 
 ```
 
-![](C:/Users/rst18vzu/OneDrive - University of East Anglia/PhD/Lit. review/Meta-analysis/Avian_migration_meta-analysis/figs/Figure_2_R_zero_final.jpg){width=80%}
+![](C:/Users/rst18vzu/OneDrive - University of East Anglia/PhD/Lit. review/Meta-analysis/Avian_migration_meta-analysis/figs/Figure2_edited.jpg){width=80%}
 
 **Figure 2.** Putting all five panels together: Figure 2a - Figure 2e (see the main text). Note this plot was edited in Affinity Designer after construction in R.
 
